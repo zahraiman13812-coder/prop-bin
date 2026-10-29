@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   CheckCircle2,
@@ -112,6 +113,7 @@ function Stars({
 }
 
 export default function PollsPage() {
+  const router = useRouter();
   const [firms, setFirms] = useState<Firm[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [myVotes, setMyVotes] = useState<Vote[]>([]);
@@ -155,11 +157,17 @@ export default function PollsPage() {
     const publicVotes = await votesResult.json();
     const session = await sessionResult.json();
 
-    setFirms(content.firms || []);
+    const availableFirms: Firm[] = content.firms || [];
+    setFirms(availableFirms);
+    const requestedFirm = new URLSearchParams(window.location.search).get("firm");
+    const isValidFirm = Boolean(requestedFirm && availableFirms.some((firm) => firm.id === requestedFirm));
     setVotes(publicVotes.polls || []);
 
     if (session.user) {
       setSignedIn(true);
+      if (isValidFirm && requestedFirm) {
+        setSelected(requestedFirm);
+      }
 
       const mine = await fetch(
         "/api/polls?mine=1",
@@ -173,6 +181,9 @@ export default function PollsPage() {
     } else {
       setSignedIn(false);
       setMyVotes([]);
+      if (isValidFirm && requestedFirm) {
+        router.replace(`/login?next=${encodeURIComponent(`/polls?firm=${requestedFirm}`)}`);
+      }
     }
   }
 

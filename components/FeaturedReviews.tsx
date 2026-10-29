@@ -44,6 +44,7 @@ export default function FeaturedReviews({
   const pausedRef = useRef(false);
 
   const [active, setActive] = useState(0);
+  const [selectedFirmId, setSelectedFirmId] = useState("");
 
   // Move only the horizontal carousel.
   // Never call scrollIntoView, because it
@@ -146,10 +147,6 @@ export default function FeaturedReviews({
     setActive(0);
   }, [polls]);
 
-  if (reviews.length === 0) {
-    return null;
-  }
-
   return (
     <section
       dir="rtl"
@@ -173,6 +170,36 @@ export default function FeaturedReviews({
           </p>
         </div>
 
+        <div className="mb-8 rounded-2xl border border-border-theme bg-surface p-5 sm:p-6">
+          <h3 className="text-lg font-bold text-foreground">به کدام شرکت امتیاز می‌دهید؟</h3>
+          <p className="mt-2 text-sm text-muted">
+            شرکت موردنظر را انتخاب کنید؛ پس از ورود، فرم نظرسنجی همان شرکت باز می‌شود.
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <select
+              aria-label="انتخاب شرکت برای نظرسنجی"
+              value={selectedFirmId}
+              onChange={(event) => setSelectedFirmId(event.target.value)}
+              className="h-12 w-full flex-1 rounded-xl border border-border-theme bg-background px-4 text-foreground"
+            >
+              <option value="">شرکت پراپ را انتخاب کنید</option>
+              {firms.map((firm) => (
+                <option key={firm.id} value={firm.id}>{firm.name}</option>
+              ))}
+            </select>
+            <Link
+              href={selectedFirmId ? `/polls?firm=${encodeURIComponent(selectedFirmId)}` : "/polls"}
+              aria-disabled={!selectedFirmId}
+              onClick={(event) => { if (!selectedFirmId) event.preventDefault(); }}
+              className={`inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-bold ${selectedFirmId ? "bg-primary text-primary-foreground" : "cursor-not-allowed bg-surface-secondary text-muted"}`}
+            >
+              ادامه و ثبت نظر
+            </Link>
+          </div>
+          {firms.length === 0 && <p className="mt-3 text-sm text-muted">هنوز شرکتی برای نظرسنجی ثبت نشده است.</p>}
+        </div>
+        {reviews.length > 0 && (
+          <>
         {/* Horizontal, touch-enabled slider */}
         <div
           ref={trackRef}
@@ -327,6 +354,8 @@ export default function FeaturedReviews({
             مشاهده همه نظرسنجی‌ها ←
           </Link>
         </div>
+          </>
+        )}
       </div>
     </section>
   );

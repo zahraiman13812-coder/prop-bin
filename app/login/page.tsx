@@ -156,10 +156,16 @@ export default function LoginPage() {
         window.location.search
       ).get("next");
 
+      // Only allow safe, same-site post-login destinations.
+      const safePollDestination = Boolean(
+        next &&
+        /^\/polls\?firm=[a-zA-Z0-9_-]{1,80}$/.test(next)
+      );
       const destination =
         next === "/lottery" ||
-        next === "/lottery?join=1"
-          ? next
+        next === "/lottery?join=1" ||
+        safePollDestination
+          ? next!
           : "/account";
 
       router.replace(destination);
