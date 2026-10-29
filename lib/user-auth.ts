@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import {
@@ -215,12 +214,14 @@ export async function verifyLoginCode(email: string, code: string): Promise<User
 function createSession(
   id: string,
   lifetime: number,
-  kind: "user" | "demo"
+  kind: "user" | "demo",
+  version = 1
 ) {
   const payload = Buffer.from(
     JSON.stringify({
       id,
       kind,
+      version,
       exp:
         Math.floor(Date.now() / 1000) +
         lifetime,
@@ -231,12 +232,13 @@ function createSession(
 }
 
 export function createUserSession(
-  user: User
+  user: User, version = 1
 ) {
   return createSession(
     user.id,
     SESSION_LIFETIME,
-    "user"
+    "user",
+    version
   );
 }
 
@@ -324,8 +326,8 @@ export async function getCurrentUser():
     }
 
     const { data, error } = await getSupabaseAdmin().from("site_users")
-      .select("id,email,name,created_at").eq("id", parsed.id).maybeSingle();
-    if (error || !data) return null;
+      .select("id,email,name,created_at,session_version").eq("id", parsed.id).maybeSingle();
+    if (error || !data || (data as {session_version?:number}).session_version !== (parsed.version ?? 1)) return null;
     return asUser(data as UserRow);
   } catch {
     return null;
