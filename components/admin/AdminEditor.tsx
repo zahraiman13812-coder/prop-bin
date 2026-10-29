@@ -282,6 +282,35 @@ export default function AdminEditor({
     }
   }
 
+  async function removeDiscount(id: string) {
+    if (
+      busy ||
+      !window.confirm(
+        "کد تخفیف و درصد تخفیف این شرکت حذف شود؟ خود شرکت باقی می‌ماند."
+      )
+    ) return;
+
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch(
+        `/api/admin/discounts/${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "حذف کد تخفیف ناموفق بود.");
+      }
+      await reload();
+      if (original === id) setForm(null);
+      setNotice("کد تخفیف و درصد تخفیف حذف شدند؛ اطلاعات شرکت حفظ شد.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "خطا در حذف کد تخفیف");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function moderate(
     id: string,
     approved: boolean
@@ -684,6 +713,19 @@ export default function AdminEditor({
                       <Pencil size={16} />
                       ویرایش
                     </button>
+
+                    {section === "discounts" && (full.code || full.discount) && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => removeDiscount(id)}
+                        className="flex items-center gap-1 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger disabled:opacity-50"
+                        aria-label={`حذف کد تخفیف ${title}`}
+                      >
+                        <Trash2 size={16} />
+                        حذف تخفیف
+                      </button>
+                    )}
 
                     {section !== "discounts" && (
                       <button
