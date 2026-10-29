@@ -1,14 +1,13 @@
 
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { put } from "@vercel/blob";
 
 import { isAdmin } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET = "article-images";
 const MAX_FILE_SIZE = 3 * 1024 * 1024;
 const MAX_REQUEST_SIZE = MAX_FILE_SIZE + 64 * 1024;
 
@@ -90,7 +89,10 @@ export async function POST(request: Request) {
 
     if (!sameOrigin(request)) {
       return reply(
-        { success: false, error: "مبدأ درخواست نامعتبر است" },
+        {
+          success: false,
+          error: "مبدأ درخواست نامعتبر است",
+        },
         403
       );
     }
@@ -98,28 +100,39 @@ export async function POST(request: Request) {
     const contentType =
       request.headers.get("content-type") ?? "";
 
-    if (!contentType.toLowerCase().startsWith(
-      "multipart/form-data;"
-    )) {
+    if (
+      !contentType
+        .toLowerCase()
+        .startsWith("multipart/form-data;")
+    ) {
       return reply(
-        { success: false, error: "فرمت درخواست نامعتبر است" },
+        {
+          success: false,
+          error: "فرمت درخواست نامعتبر است",
+        },
         415
       );
     }
 
-    const contentLength = Number(
-      request.headers.get("content-length")
-    );
+    const contentLengthHeader =
+      request.headers.get("content-length");
 
-    if (
-      !Number.isSafeInteger(contentLength) ||
-      contentLength <= 0 ||
-      contentLength > MAX_REQUEST_SIZE
-    ) {
-      return reply(
-        { success: false, error: "حجم درخواست نامعتبر است" },
-        413
-      );
+    if (contentLengthHeader !== null) {
+      const contentLength = Number(contentLengthHeader);
+
+      if (
+        !Number.isSafeInteger(contentLength) ||
+        contentLength <= 0 ||
+        contentLength > MAX_REQUEST_SIZE
+      ) {
+        return reply(
+          {
+            success: false,
+            error: "حجم درخواست نامعتبر است",
+          },
+          413
+        );
+      }
     }
 
     const formData = await request.formData();
@@ -127,7 +140,10 @@ export async function POST(request: Request) {
 
     if (!(file instanceof File)) {
       return reply(
-        { success: false, error: "تصویری انتخاب نشده است" },
+        {
+          success: false,
+          error: "تصویری انتخاب نشده است",
+        },
         400
       );
     }
@@ -137,7 +153,10 @@ export async function POST(request: Request) {
       file.size > MAX_FILE_SIZE
     ) {
       return reply(
-        { success: false, error: "حداکثر حجم تصویر ۳ مگابایت است" },
+        {
+          success: false,
+          error: "حداکثر حجم تصویر ۳ مگابایت است",
+        },
         413
       );
     }
@@ -168,40 +187,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const path =
+    const pathname =
       `covers/${randomUUID()}.${extension}`;
 
-    const supabase = getSupabaseAdmin();
-
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, bytes, {
-        contentType: file.type,
-        cacheControl: "31536000",
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("Storage upload error:", error);
-
-      return reply(
-        {
-          success: false,
-          error: "آپلود تصویر در Supabase ناموفق بود",
-        },
-        500
-      );
-    }
-
-    const { data: urlData } = supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(data.path);
+    // Upload image to Vercel Blob
+    const blob = await put(pathname, file, {
+      access: "public",
+      addRandomSuffix: false,
+    });
 
     return reply(
       {
         success: true,
-        url: urlData.publicUrl,
-        path: data.path,
+        url: blob.url,
+        path: blob.pathname,
       },
       201
     );
@@ -211,7 +210,7 @@ export async function POST(request: Request) {
     return reply(
       {
         success: false,
-        error: "خطا در پردازش تصویر",
+        error: "آپلود تصویر در فضای ذخیره‌سازی ناموفق بود.",
       },
       500
     );
