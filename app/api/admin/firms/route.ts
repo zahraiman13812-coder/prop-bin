@@ -387,11 +387,17 @@ export async function POST(request: Request) {
     }
 
     // 6. ثبت شرکت در Supabase
+    
+    // 6. ثبت شرکت در PostgreSQL
     const supabase = getSupabaseAdmin();
+
+    // شناسه متنی فرم را در ستون UUID ذخیره نمی‌کنیم.
+    // PostgreSQL خودش UUID تولید می‌کند.
+    const { id: _formId, ...firmData } = validated.firm;
 
     const { data, error } = await supabase
       .from("prop_firms")
-      .insert(validated.firm)
+      .insert(firmData)
       .select("*")
       .single();
 
@@ -411,7 +417,7 @@ export async function POST(request: Request) {
       return json(
         {
           success: false,
-          error: "ثبت شرکت در Supabase ناموفق بود.",
+          error: "ثبت شرکت در پایگاه داده ناموفق بود.",
         },
         500
       );
