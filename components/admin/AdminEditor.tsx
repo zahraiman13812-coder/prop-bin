@@ -112,26 +112,41 @@ export default function AdminEditor({
     setData(initial);
     setForm(null);
     setNotice("");
+    if (section !== "discounts") return;
+    let cancelled = false;
+    void fetch("/api/admin/discounts", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "دریافت تخفیف‌ها ناموفق بود.");
+        if (!cancelled) setData(previous => ({ ...previous, firms: payload.firms }));
+      })
+      .catch(error => { if (!cancelled) setNotice(error instanceof Error ? error.message : "خطا در دریافت تخفیف‌ها"); });
+    return () => { cancelled = true; };
   }, [initial, section]);
 
   const configuredFields =
     section === "polls" ? [] : fields[section];
 
-  const records =
-    section === "articles"
-      ? data.articles
-      : data.firms;
+  
+const records =
+  section === "articles"
+    ? data.articles
+    : data.firms;
 
-  const rows = (
-    section === "polls" ||
-    section === "settings"
-      ? []
+const rows = (
+  section === "polls" || section === "settings"
+    ? []
+    : section === "discounts"
+      ? data.firms.filter(
+          (firm) => Boolean(firm.code || firm.discount)
+        )
       : records
-  ).filter((item) =>
-    JSON.stringify(item)
-      .toLocaleLowerCase()
-      .includes(search.toLocaleLowerCase())
-  );
+).filter((item) =>
+  JSON.stringify(item)
+    .toLocaleLowerCase()
+    .includes(search.toLocaleLowerCase())
+);
+
 
   function edit(row: Row) {
     setForm({ ...row });
@@ -168,19 +183,17 @@ export default function AdminEditor({
   }
 
   async function reload() {
-    const response = await fetch("/api/content", {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        "دریافت اطلاعات به‌روز ناموفق بود."
-      );
+    if (section === "discounts") {
+      const response = await fetch("/api/admin/discounts", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "دریافت تخفیف‌ها ناموفق بود.");
+      setData(previous => ({ ...previous, firms: result.firms }));
+    } else {
+      const response = await fetch("/api/content", { cache: "no-store" });
+      if (!response.ok) throw new Error("دریافت اطلاعات به‌روز ناموفق بود.");
+      const result: Content = await response.json();
+      setData(result);
     }
-
-    const result: Content = await response.json();
-
-    setData(result);
     router.refresh();
   }
 
