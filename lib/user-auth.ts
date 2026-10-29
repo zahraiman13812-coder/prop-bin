@@ -336,7 +336,7 @@ export async function listUsers(): Promise<User[]> {
   const { data, error } = await getSupabaseAdmin().from("site_users")
     .select("id,email,name,created_at").order("created_at", { ascending: false });
   if (error) dbFail(error);
-  return (data ?? []).map((row) => asUser(row as UserRow));
+  return ((data ?? []) as UserRow[]).map((row: UserRow) => asUser(row));
 }
 
 export async function updateUserName(userId: string, name: string): Promise<User> {

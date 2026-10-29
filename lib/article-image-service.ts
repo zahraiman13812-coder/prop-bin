@@ -83,9 +83,11 @@ export async function getArticleImageReport():
 
       files.push({
         name: file.name,
-        size: Number(file.metadata?.size ?? 0),
-        createdAt: file.created_at ?? null,
-      });
+        size: Number(
+  (file.metadata as { size?: number | string } | null)?.size ?? 0
+),
+createdAt:
+  (file as typeof file & { created_at?: string | null }).created_at ?? null,      });
     }
 
     if (entries.length < PAGE_SIZE) {

@@ -76,7 +76,11 @@ class Query {
 }
 function storageBucket(bucket:string) {
   return {
-    async upload(name:string, bytes:Buffer|Uint8Array, opts?:{upsert?:boolean}) {try {const p=safePath(bucket,name);await mkdir(path.dirname(p),{recursive:true});await writeFile(p,bytes,{flag:opts?.upsert?'w':'wx'});return {data:{path:name},error:null};}catch(e:any){return {data:null,error:{message:e.message}};}},
+    async upload(name:string, bytes:Buffer|Uint8Array, opts?: {
+  upsert?: boolean;
+  contentType?: string;
+  cacheControl?: string;
+}) {try {const p=safePath(bucket,name);await mkdir(path.dirname(p),{recursive:true});await writeFile(p,bytes,{flag:opts?.upsert?'w':'wx'});return {data:{path:name},error:null};}catch(e:any){return {data:null,error:{message:e.message}};}},
     getPublicUrl(name:string){ const base=(process.env.NEXT_PUBLIC_SITE_URL||'http://localhost:3000').replace(/\/$/,'');return {data:{publicUrl:base+'/uploads/'+encodeURIComponent(bucket)+'/'+name.split('/').map(encodeURIComponent).join('/')}};},
     async remove(names:string[]){try{for(const name of names){await unlink(safePath(bucket,name)).catch((e:any)=>{if(e.code!=='ENOENT')throw e;});}return {data:names.map(name=>({name})),error:null};}catch(e:any){return {data:null,error:{message:e.message}};}},
     async list(folder='',options?:{limit?:number;offset?:number;search?:string;sortBy?:unknown}) {try{const dir=path.resolve(storageRoot,bucket,folder);if(!dir.startsWith(path.resolve(storageRoot,bucket)))throw Error('Invalid path');const files=await readdir(dir,{withFileTypes:true}).catch((e:any)=>{if(e.code==='ENOENT')return [];throw e;});const names=files.filter(f=>f.isFile()&&(!options?.search||f.name.includes(options.search))).map(f=>({name:f.name,id:f.name,metadata:{}}));return {data:names.slice(options?.offset||0,(options?.offset||0)+(options?.limit||100)),error:null};}catch(e:any){return {data:null,error:{message:e.message}};}}

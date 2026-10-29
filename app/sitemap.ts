@@ -39,7 +39,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const articlePages: MetadataRoute.Sitemap = (data ?? []).map(
-    (article) => ({
+  (article: {
+    slug: string;
+    updated_at?: string | null;
+    published_at?: string | null;
+  }) => ({
       url: `${origin}/articles/${encodeURIComponent(article.slug)}`,
       lastModified:
         article.updated_at || article.published_at || undefined,
