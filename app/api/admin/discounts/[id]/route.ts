@@ -14,7 +14,12 @@ export async function DELETE(request: Request, context: Context) {
   }
 
   const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(request.url).origin) {
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  let sameOrigin = false;
+  try {
+    sameOrigin = Boolean(origin && host && new URL(origin).host === host);
+  } catch { /* reject invalid origin */ }
+  if (!sameOrigin) {
     return NextResponse.json({ error: "مبدأ درخواست نامعتبر است" }, { status: 403 });
   }
 
