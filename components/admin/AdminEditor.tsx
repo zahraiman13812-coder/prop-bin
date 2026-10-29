@@ -107,10 +107,12 @@ export default function AdminEditor({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
+  const [discountFirmId, setDiscountFirmId] = useState("");
 
   useEffect(() => {
     setData(initial);
     setForm(null);
+    setDiscountFirmId("");
     setNotice("");
     if (section !== "discounts") return;
     let cancelled = false;
@@ -127,29 +129,27 @@ export default function AdminEditor({
   const configuredFields =
     section === "polls" ? [] : fields[section];
 
-  
-const records =
-  section === "articles"
-    ? data.articles
-    : data.firms;
+  const records =
+    section === "articles"
+      ? data.articles
+      : data.firms;
 
-const rows = (
-  section === "polls" || section === "settings"
-    ? []
-    : section === "discounts"
-      ? data.firms.filter(
-          (firm) => Boolean(firm.code || firm.discount)
-        )
-      : records
-).filter((item) =>
-  JSON.stringify(item)
-    .toLocaleLowerCase()
-    .includes(search.toLocaleLowerCase())
-);
-
+  const rows = (
+    section === "polls" ||
+    section === "settings"
+      ? []
+      : section === "discounts"
+        ? data.firms.filter(item => Boolean(item.code || item.discount))
+        : records
+  ).filter((item) =>
+    JSON.stringify(item)
+      .toLocaleLowerCase()
+      .includes(search.toLocaleLowerCase())
+  );
 
   function edit(row: Row) {
     setForm({ ...row });
+    if (section === "discounts") setDiscountFirmId(row.id || "");
     setOriginal(row.id || row.slug || "");
     setNotice("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -170,6 +170,7 @@ const rows = (
     }
 
     setForm(blank);
+    if (section === "discounts") setDiscountFirmId("");
     setOriginal("");
     setNotice("");
   }
@@ -206,34 +207,25 @@ const rows = (
     setNotice("");
 
     try {
-      const type =
-        section === "discounts" ? "firms" : section;
-
-      let item: Row = { ...form };
-
+      let response: Response;
       if (section === "discounts") {
-        const existing = data.firms.find(
-          (firm) => firm.id === original
-        );
-
-        if (!existing) {
-          throw new Error("شرکت موردنظر پیدا نشد.");
-        }
-
-        item = { ...existing, ...form };
+        const firmId = original || discountFirmId;
+        if (!firmId) throw new Error("ابتدا شرکت را انتخاب کنید.");
+        const code = (form.code || "").trim();
+        const discount = (form.discount || "").trim();
+        if (!code || !discount) throw new Error("کد و مقدار تخفیف را وارد کنید.");
+        response = await fetch(`/api/admin/discounts/${encodeURIComponent(firmId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, discount }),
+        });
+      } else {
+        response = await fetch("/api/content", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: section, item: { ...form }, originalId: original }),
+        });
       }
-
-      const response = await fetch("/api/content", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type,
-          item,
-          originalId: original,
-        }),
-      });
 
       const result = await response.json();
 
@@ -366,15 +358,14 @@ const rows = (
         </div>
 
         {section !== "polls" &&
-          section !== "settings" &&
-          section !== "discounts" && (
+          section !== "settings" && (
             <button
               type="button"
               onClick={createNew}
               className="flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
             >
               <Plus size={18} />
-              افزودن جدید
+              {section === "discounts" ? "افزودن کد تخفیف" : "افزودن جدید"}
             </button>
           )}
 
@@ -421,8 +412,25 @@ const rows = (
             </button>
           </div>
 
+          {section === "discounts" && (
+            <label className="block space-y-2">
+              <span className="block text-xs font-semibold text-muted">شرکت پراپ</span>
+              <select
+                required
+                disabled={Boolean(original)}
+                value={original || discountFirmId}
+                onChange={(event) => setDiscountFirmId(event.target.value)}
+                className="w-full rounded-xl border border-border-theme bg-background px-4 py-3 text-sm text-foreground"
+              >
+                <option value="">یک شرکت انتخاب کنید</option>
+                {data.firms.map((firm) => (
+                  <option key={firm.id} value={firm.id}>{firm.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-            {configuredFields.map(([key, label]) => {
+            {configuredFields.filter(([key]) => section !== "discounts" || key === "code" || key === "discount").map(([key, label]) => {
               const isLong = [
                 "body",
                 "description",
@@ -479,8 +487,7 @@ const rows = (
           </div>
 
           {(section === "articles" ||
-            section === "firms" ||
-            section === "discounts") && (
+            section === "firms") && (
             <ArticleImageUpload
               value={
                 section === "articles"
