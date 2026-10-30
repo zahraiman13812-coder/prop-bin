@@ -76,7 +76,7 @@ export async function resetPassword(input:{email:string;phone:string;recoveryCod
   const newRecovery=randomBytes(18).toString('hex');
   const newRecoveryHash=await hashSecret(newRecovery);
   const updated=await db.query(`UPDATE site_users SET password_hash=$1,recovery_hash=$2,session_version=session_version+1
-    WHERE id=$3 AND recovery_hash=$4 RETURNING id`,[newHash,newRecoveryHash,row.id,row.recovery_hash]);
+    WHERE id=$3 AND recovery_hash=$4 RETURNING id,email,name,created_at,session_version`,[newHash,newRecoveryHash,row.id,row.recovery_hash]);
   if(!updated.rowCount)throw new Error('درخواست منقضی شده است؛ دوباره تلاش کنید.');
-  return newRecovery;
+  return {recoveryCode:newRecovery,user:userOf(updated.rows[0]),version:updated.rows[0].session_version};
 }

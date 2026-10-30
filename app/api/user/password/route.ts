@@ -20,8 +20,9 @@ export async function POST(request:NextRequest) {
       const response=NextResponse.json({ok:true});response.cookies.set(userCookie.name,createUserSession(user,version),userCookie.options);return response;
     }
     if(b.action==='reset') {
-      const recoveryCode=await resetPassword({email:str('email'),phone:str('phone'),recoveryCode:str('recoveryCode'),newPassword:str('newPassword')});
-      return NextResponse.json({ok:true,recoveryCode});
+      const {recoveryCode,user,version}=await resetPassword({email:str('email'),phone:str('phone'),recoveryCode:str('recoveryCode'),newPassword:str('newPassword')});
+      const response=NextResponse.json({ok:true,recoveryCode});
+      response.cookies.set(userCookie.name,createUserSession(user,version),userCookie.options);return response;
     }
     return NextResponse.json({error:'عملیات نامعتبر است.'},{status:400});
   }catch(e) {
