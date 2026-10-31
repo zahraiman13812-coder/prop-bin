@@ -82,6 +82,11 @@ const navigation = [
     icon: Palette,
   },
   {
+    title: "تغییر رمز مدیر",
+    path: "/change-password",
+    icon: ShieldCheck,
+  },
+  {
     title: "تنظیمات سایت",
     path: "/settings",
     icon: Settings,

@@ -45,12 +45,11 @@ export async function register(input:{email:string;phone:string;name:string;pass
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||!validPhone(phone)||name.length<2||name.length>80||!validPassword(input.password)) throw new Error('نام، ایمیل، موبایل یا رمز عبور معتبر نیست (رمز حداقل ۱۲ کاراکتر).');
   await throttle(keyFor('register',email));
   const passwordHash=await hashSecret(input.password);
-  const recoveryCode=randomBytes(18).toString('hex');
-  const recoveryHash=await hashSecret(recoveryCode);
+  const recoveryHash=null;
   try {
     const result=await db.query(`INSERT INTO site_users(email,phone,name,password_hash,recovery_hash)
       VALUES ($1,$2,$3,$4,$5) RETURNING id,email,name,created_at`,[email,phone,name,passwordHash,recoveryHash]);
-    return {user:userOf(result.rows[0]),recoveryCode};
+    return {user:userOf(result.rows[0])};
   }catch(e:unknown){if((e as {code?:string}).code==='23505')throw new Error('ایمیل یا شماره موبایل قبلاً ثبت شده است.');throw e;}
 }
 export async function login(identifier:string,password:string) {
@@ -65,18 +64,15 @@ export async function login(identifier:string,password:string) {
   if(!row||!valid)throw new Error('اطلاعات ورود صحیح نیست.');
   return {user:userOf(row),version:row.session_version};
 }
-export async function resetPassword(input:{email:string;phone:string;recoveryCode:string;newPassword:string}) {
+export async function resetPassword(input:{email:string;phone:string;newPassword:string}) {
   const email=normalizeEmail(input.email),phone=normalizePhone(input.phone);
-  if(!validPhone(phone)||!validPassword(input.newPassword)||!input.recoveryCode)throw new Error('اطلاعات بازیابی معتبر نیست.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!validPhone(phone)||!validPassword(input.newPassword))throw new Error('اطلاعات بازیابی معتبر نیست.');
   await throttle(keyFor('reset',email));
-  const res=await db.query('SELECT id,recovery_hash FROM site_users WHERE email=$1 AND phone=$2',[email,phone]);
-  const row=res.rows[0] as {id:string;recovery_hash:string|null}|undefined;
-  if(!row?.recovery_hash || !(await checkSecret(input.recoveryCode,row.recovery_hash)))throw new Error('اطلاعات بازیابی صحیح نیست.');
+  // WARNING: Knowledge of email and phone does not prove account ownership.
+  // For production, use a verified email/SMS challenge before resetting passwords.
   const newHash=await hashSecret(input.newPassword);
-  const newRecovery=randomBytes(18).toString('hex');
-  const newRecoveryHash=await hashSecret(newRecovery);
-  const updated=await db.query(`UPDATE site_users SET password_hash=$1,recovery_hash=$2,session_version=session_version+1
-    WHERE id=$3 AND recovery_hash=$4 RETURNING id,email,name,created_at,session_version`,[newHash,newRecoveryHash,row.id,row.recovery_hash]);
-  if(!updated.rowCount)throw new Error('درخواست منقضی شده است؛ دوباره تلاش کنید.');
-  return {recoveryCode:newRecovery,user:userOf(updated.rows[0]),version:updated.rows[0].session_version};
+  const updated=await db.query(`UPDATE site_users SET password_hash=$1,recovery_hash=NULL,session_version=session_version+1
+    WHERE email=$2 AND phone=$3 RETURNING id,email,name,created_at,session_version`,[newHash,email,phone]);
+  if(!updated.rowCount)throw new Error('ایمیل یا شماره تلفن با اطلاعات ثبت‌شده مطابقت ندارد.');
+  return {user:userOf(updated.rows[0]),version:updated.rows[0].session_version};
 }

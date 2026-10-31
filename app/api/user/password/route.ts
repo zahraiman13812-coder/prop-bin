@@ -11,8 +11,8 @@ export async function POST(request:NextRequest) {
   const str=(key:string)=>typeof b[key]==='string'?b[key]:'';
   try {
     if(b.action==='register') {
-      const {user,recoveryCode}=await register({email:str('email'),phone:str('phone'),name:str('name'),password:str('password')});
-      const response=NextResponse.json({ok:true,recoveryCode});
+      const {user}=await register({email:str('email'),phone:str('phone'),name:str('name'),password:str('password')});
+      const response=NextResponse.json({ok:true});
       response.cookies.set(userCookie.name,createUserSession(user),userCookie.options);return response;
     }
     if(b.action==='login') {
@@ -20,8 +20,8 @@ export async function POST(request:NextRequest) {
       const response=NextResponse.json({ok:true});response.cookies.set(userCookie.name,createUserSession(user,version),userCookie.options);return response;
     }
     if(b.action==='reset') {
-      const {recoveryCode,user,version}=await resetPassword({email:str('email'),phone:str('phone'),recoveryCode:str('recoveryCode'),newPassword:str('newPassword')});
-      const response=NextResponse.json({ok:true,recoveryCode});
+      const {user,version}=await resetPassword({email:str('email'),phone:str('phone'),newPassword:str('newPassword')});
+      const response=NextResponse.json({ok:true});
       response.cookies.set(userCookie.name,createUserSession(user,version),userCookie.options);return response;
     }
     return NextResponse.json({error:'عملیات نامعتبر است.'},{status:400});

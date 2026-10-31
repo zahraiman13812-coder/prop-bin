@@ -45,7 +45,7 @@ export default function PollsPage() {
 
   async function load() {
     const [contentResponse, sessionResponse] = await Promise.all([
-      fetch("/api/content", { cache: "no-store" }),
+      fetch("/api/firms", { cache: "no-store" }),
       fetch("/api/user/session", { cache: "no-store" }),
     ]);
     if (!contentResponse.ok || !sessionResponse.ok) throw new Error("دریافت اطلاعات نظرسنجی ناموفق بود.");
