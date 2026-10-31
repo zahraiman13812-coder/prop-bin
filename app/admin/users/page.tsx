@@ -189,7 +189,7 @@ export default function AdminUsersPage() {
             />
             در حال بارگذاری...
           </div>
-        ) : filtered.length === 0 ? (
+        ) : error ? null : filtered.length === 0 ? (
           <p className="rounded-xl bg-surface-secondary p-8 text-center text-sm text-muted">
             کاربری پیدا نشد.
           </p>
