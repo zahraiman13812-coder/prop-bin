@@ -6,11 +6,9 @@ import {
   useState,
 } from "react";
 
-import Link from "next/link";
 import {
   Loader2,
   Search,
-  Trophy,
   Users,
 } from "lucide-react";
 
@@ -109,14 +107,6 @@ export default function AdminUsersPage() {
             ایمیل در این بخش نمایش داده می‌شود.
           </p>
         </div>
-
-        <Link
-          href="/admin/wheel"
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
-        >
-          <Trophy size={17} />
-          قرعه‌کشی ماهانه
-        </Link>
       </div>
 
       {error && (
@@ -189,7 +179,7 @@ export default function AdminUsersPage() {
             />
             در حال بارگذاری...
           </div>
-        ) : error ? null : filtered.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="rounded-xl bg-surface-secondary p-8 text-center text-sm text-muted">
             کاربری پیدا نشد.
           </p>
