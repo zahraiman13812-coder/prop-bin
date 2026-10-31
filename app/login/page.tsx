@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   return (
     <main dir="rtl" className="flex min-h-[75vh] items-center justify-center px-4 py-12">
-      <section className="w-full max-w-[430px] rounded-[24px] border border-border-theme bg-surface px-6 py-8 shadow-[0_24px_80px_#0003] sm:px-9">
+      <section className="w-full max-w-[430px] rounded-[24px] border px-6 py-8 shadow-[0_24px_80px_#0003] sm:px-9" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-theme)", color: "var(--foreground)", transition: "background-color 200ms ease, border-color 200ms ease, color 200ms ease" }}>
         <div className="mb-7 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary"><ShieldCheck size={24}/></div>
           <h1 className="mb-1 text-2xl font-bold text-foreground">{mode === "login" ? "خوش اومدی به پراپین" : "ساخت حساب کاربری"}</h1>
