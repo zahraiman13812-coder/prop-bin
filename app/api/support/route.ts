@@ -7,6 +7,7 @@ import { isAdmin } from "@/lib/auth";
 import { validOrigin } from "@/lib/guard";
 import {
   getAllThreads,
+  deleteSupportThread,
   getThreadForUser,
   markThreadRead,
   sendAdminReply,
@@ -167,5 +168,20 @@ export async function POST(request: NextRequest) {
         ? err.message
         : "ارسال پیام انجام نشد."
     );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!validOrigin(request)) return error("درخواست نامعتبر است.", 403);
+  try {
+    if (!(await isAdmin())) return error("دسترسی غیرمجاز.", 403);
+    const body = await request.json().catch(() => null);
+    const threadId = typeof body?.threadId === "string" ? body.threadId : "";
+    if (!threadId) return error("گفتگو مشخص نشده است.");
+    await deleteSupportThread(threadId);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("Support delete failed:", err);
+    return error(err instanceof Error ? err.message : "حذف گفتگو انجام نشد.", 500);
   }
 }

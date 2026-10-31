@@ -57,8 +57,8 @@ export default function SupportWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  async function load(markRead = false) {
-    setLoading(true);
+  async function load(markRead = false, showLoading = false) {
+    if (showLoading) setLoading(true);
 
     try {
       const response = await fetch(
@@ -93,7 +93,7 @@ export default function SupportWidget() {
           : "خطا در دریافت پشتیبانی"
       );
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }
 
@@ -137,7 +137,7 @@ export default function SupportWidget() {
   useEffect(() => {
     if (!open) return;
 
-    void load(true);
+    void load(true, true);
 
     const timer = window.setInterval(() => {
       void load(true);

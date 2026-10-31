@@ -203,3 +203,13 @@ export async function markThreadRead(
 
   return getThreadForUser(thread.user_id);
 }
+
+/** Remove one complete support conversation, including messages (FK cascade). */
+export async function deleteSupportThread(threadId: string): Promise<void> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)) {
+    throw new Error("شناسه گفتگو نامعتبر است.");
+  }
+  const { error } = await getSupabaseAdmin().from("support_threads")
+    .delete().eq("id", threadId);
+  if (error) dbError("delete thread", error);
+}

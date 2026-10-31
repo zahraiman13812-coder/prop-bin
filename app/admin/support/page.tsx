@@ -12,6 +12,7 @@ import {
   Headphones,
   Loader2,
   Send,
+  Trash2,
 } from "lucide-react";
 
 import type {
@@ -184,6 +185,28 @@ export default function AdminSupportPage() {
     }
   }
 
+  async function removeThread() {
+    if (!thread || busy) return;
+    if (!window.confirm("این گفتگو و تمام پیام‌های آن برای همیشه حذف شوند؟")) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/support", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId: thread.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "حذف گفتگو انجام نشد.");
+      setSelected("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "خطا در حذف گفتگو");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center gap-2 text-muted">
@@ -294,9 +317,14 @@ export default function AdminSupportPage() {
                     </p>
                   </div>
 
-                  <span className="shrink-0 text-[10px] text-muted">
-                    {clock(thread.updatedAt)}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-[10px] text-muted">{clock(thread.updatedAt)}</span>
+                    <button type="button" onClick={() => void removeThread()} disabled={busy}
+                      title="حذف گفتگو و پیام‌ها" aria-label="حذف گفتگو"
+                      className="inline-flex items-center gap-1 rounded-lg border border-danger/30 px-2 py-1.5 text-xs text-danger disabled:opacity-40">
+                      <Trash2 size={15} /> حذف
+                    </button>
+                  </div>
                 </div>
 
                 <div
