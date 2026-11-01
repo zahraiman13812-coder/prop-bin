@@ -3,6 +3,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import FirmLogoUpload from "@/components/admin/FirmLogoUpload";
 
 type FirmForm = {
   id: string;
@@ -18,12 +19,13 @@ type FirmForm = {
   payout: string;
   challenge: string;
   logo_text: string;
+  logo: string;
   sort_order: string;
 };
 
 type TextField = Exclude<
   keyof FirmForm,
-  "description" | "sort_order"
+  "description" | "sort_order" | "logo"
 >;
 
 type CreateResponse = {
@@ -49,6 +51,7 @@ const initialForm: FirmForm = {
   payout: "",
   challenge: "",
   logo_text: "",
+  logo: "",
   sort_order: "0",
 };
 
@@ -95,18 +98,6 @@ const fields: {
     name: "fee",
     label: "هزینه چالش",
     placeholder: "$100",
-    dir: "ltr",
-  },
-  {
-    name: "discount",
-    label: "میزان تخفیف",
-    placeholder: "10%",
-    dir: "ltr",
-  },
-  {
-    name: "code",
-    label: "کد تخفیف",
-    placeholder: "PROPIN10",
     dir: "ltr",
   },
   {
@@ -243,6 +234,7 @@ export default function FirmCreateForm() {
             payout: form.payout.trim(),
             challenge: form.challenge.trim(),
             logo_text: form.logo_text.trim(),
+            logo: form.logo,
             sort_order: sortOrder,
             is_active: false,
           }),
@@ -335,6 +327,8 @@ export default function FirmCreateForm() {
           ))}
         </div>
       </div>
+
+      <FirmLogoUpload value={form.logo} onChange={value => update("logo", value)} />
 
       <div className="rounded-2xl border border-border-theme bg-surface p-5">
         <label className="block space-y-2">
