@@ -20,7 +20,7 @@ function normalize(x: unknown) {
   return { introduction:str(o.introduction),history:str(o.history),tradingRules:str(o.tradingRules),payoutRules:str(o.payoutRules),
     pros:safeArray(o.pros),cons:safeArray(o.cons),facts:asEntries(o.facts,["label","value"],40),
     plans:asEntries(o.plans,["name","size","price","target","dailyLoss","maxLoss"],50),
-    faqs:asEntries(o.faqs,["question","answer"],30),discounts:asEntries(o.discounts,["code","amount","note"],30) };
+    faqs:asEntries(o.faqs,["question","answer"],30),discounts:asEntries(o.discounts,["code","amount","note"],30),customHtml:str(o.customHtml,180000) };
 }
 const response=(obj:unknown,status=200)=>NextResponse.json(obj,{status,headers:{"Cache-Control":"no-store"}});
 export async function GET(request:NextRequest) {
@@ -32,7 +32,7 @@ export async function GET(request:NextRequest) {
 }
 export async function PUT(request:NextRequest) {
   if(request.headers.get("origin")!==new URL(request.url).origin || !await isAdmin()) return response({error:"دسترسی غیرمجاز"},403);
-  if(Number(request.headers.get("content-length")||0)>100000) return response({error:"حجم داده بیش از حد مجاز است"},413);
+  if(Number(request.headers.get("content-length")||0)>350000) return response({error:"حجم داده بیش از حد مجاز است"},413);
   const body=await request.json().catch(()=>null);
   if(!idPattern.test(body?.id||"") || !body?.details) return response({error:"ورودی نامعتبر"},400);
   try {

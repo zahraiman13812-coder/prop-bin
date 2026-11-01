@@ -58,6 +58,7 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
             <a key={anchor} href={`#${anchor}`} className="rounded-lg border border-border-theme px-3 py-2 hover:text-primary">{title}</a>)}
         </nav>
 
+        {details.customHtml && <section aria-label={`بررسی اختصاصی ${firm.name}`} className="overflow-hidden rounded-3xl border border-border-theme bg-surface p-3 sm:p-6"><h2 className="mb-4 text-xl font-bold">بررسی اختصاصی {firm.name}</h2><iframe title={`بررسی اختصاصی ${firm.name}`} sandbox="" referrerPolicy="no-referrer" loading="lazy" className="w-full rounded-xl border border-border-theme bg-white" style={{height:"850px"}} srcDoc={`<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>${details.customHtml}</body></html>`}/></section>}
         <section id="overview" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
           <h2 className="text-2xl font-bold">مهم‌ترین مشخصات {firm.name} در یک نگاه</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
