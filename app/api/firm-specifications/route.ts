@@ -1,132 +1,57 @@
-export const firmSpecificationFields = [
-  {
-    "key": "foundedAt",
-    "label": "تاریخ تأسیس"
-  },
-  {
-    "key": "maxCombinedAccounts",
-    "label": "حداکثر مجموع اکانت‌ها"
-  },
-  {
-    "key": "referencePlan",
-    "label": "پلن مبنا بررسی"
-  },
-  {
-    "key": "phaseOneTarget",
-    "label": "تارگت فاز ۱"
-  },
-  {
-    "key": "phaseTwoTarget",
-    "label": "تارگت فاز ۲"
-  },
-  {
-    "key": "challengeTimeLimit",
-    "label": "محدودیت زمانی چالش"
-  },
-  {
-    "key": "minimumTradingDays",
-    "label": "حداقل روز معاملاتی در چالش‌ها"
-  },
-  {
-    "key": "dailyDrawdown",
-    "label": "دراودان روزانه"
-  },
-  {
-    "key": "totalDrawdown",
-    "label": "دراودان کل"
-  },
-  {
-    "key": "floatingRisk",
-    "label": "ریسک شناور"
-  },
-  {
-    "key": "eightyPercentRule",
-    "label": "قانون ۸۰ درصد"
-  },
-  {
-    "key": "consistencyRule",
-    "label": "قانون ثبات در معاملات"
-  },
-  {
-    "key": "fundedAccountRules",
-    "label": "قوانین خاص حساب ریل"
-  },
-  {
-    "key": "profitConcentrationRule",
-    "label": "قانون تمرکز سود"
-  },
-  {
-    "key": "newsTrading",
-    "label": "معامله در تایم خبر"
-  },
-  {
-    "key": "weekendCrypto",
-    "label": "معامله کریپتو در تعطیلات"
-  },
-  {
-    "key": "minimumTradeDuration",
-    "label": "حداقل تایم ترید (فست اسکلپ)"
-  },
-  {
-    "key": "weekendHolding",
-    "label": "نگهداری آخر هفته"
-  },
-  {
-    "key": "profitSplit",
-    "label": "تقسیم سود"
-  },
-  {
-    "key": "refund",
-    "label": "ریفاند"
-  },
-  {
-    "key": "firstPayoutCondition",
-    "label": "شرط اولین برداشت سود"
-  },
-  {
-    "key": "nextPayoutSchedule",
-    "label": "زمان برداشت‌های بعدی"
-  },
-  {
-    "key": "payoutMethod",
-    "label": "نحوه برداشت سود"
-  },
-  {
-    "key": "minimumWithdrawal",
-    "label": "حداقل سود قابل برداشت"
-  },
-  {
-    "key": "withdrawalProfitCap",
-    "label": "حد سود در برداشت"
-  },
-  {
-    "key": "platform",
-    "label": "پلتفرم معاملاتی"
-  },
-  {
-    "key": "brokers",
-    "label": "بروکرها و سرور اختصاصی"
-  },
-  {
-    "key": "vps",
-    "label": "VPS"
-  },
-  {
-    "key": "tradingBots",
-    "label": "استفاده از ربات معامله‌کننده"
-  },
-  {
-    "key": "riskManagementEA",
-    "label": "استفاده از اکسپرت مدیریت سرمایه"
-  },
-  {
-    "key": "purchaseMethod",
-    "label": "نحوه خرید حساب"
-  },
-  {
-    "key": "accountPasswordChange",
-    "label": "تغییر رمز اصلی حساب"
+
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const firmId = searchParams.get("firmId");
+
+    if (!firmId) {
+      return NextResponse.json(
+        { error: "شناسه شرکت الزامی است." },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from("firm_details")
+      .select("content")
+      .eq("firm_id", firmId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Firm specifications:", error);
+      return NextResponse.json(
+        { error: "خطا در دریافت مشخصات شرکت." },
+        { status: 500 }
+      );
+    }
+
+    const content = data?.content;
+
+    const specifications =
+      content &&
+      typeof content === "object" &&
+      !Array.isArray(content) &&
+      content.specifications &&
+      typeof content.specifications === "object" &&
+      !Array.isArray(content.specifications)
+        ? content.specifications
+        : {};
+
+    return NextResponse.json(
+      { specifications },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (error) {
+    console.error("Firm specifications GET:", error);
+    return NextResponse.json(
+      { error: "خطای داخلی سرور." },
+      { status: 500 }
+    );
   }
-] as const;
-export type FirmSpecificationKey = (typeof firmSpecificationFields)[number]["key"];
-export type FirmSpecifications = Partial<Record<FirmSpecificationKey,string>>;
+}
