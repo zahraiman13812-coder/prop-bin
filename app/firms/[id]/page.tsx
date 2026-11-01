@@ -5,6 +5,7 @@ import FirmQuestionForm from "@/components/FirmQuestionForm";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getActivePropFirms } from "@/lib/supabase-firms";
 import { getPolls } from "@/lib/supabase-polls";
+import { getFirmDetails } from "@/lib/firm-details";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
   const firm = firms.find((item) => item.id === id);
   if (!firm) notFound();
 
+  const details = await getFirmDetails(id);
   const approved = (await getPolls()).filter((item) => item.firmId === id && item.approved && item.comment.trim());
   const { data: questionRows, error } = await getSupabaseAdmin().from("firm_questions")
     .select("id,display_name,question,created_at").eq("firm_id", id)
@@ -52,17 +54,23 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
         </section>
 
         <nav aria-label="بخش‌های بررسی" className="flex flex-wrap gap-2 rounded-2xl border border-border-theme bg-surface p-4 text-sm">
-          {[["overview", "اطلاعات در یک نگاه"],["plans", "پلن‌ها و قوانین"],["discount", "کد تخفیف"],["discussion", "گفت‌وگوی کاربران"]].map(([anchor, title]) =>
+          {[["overview", "اطلاعات در یک نگاه"],["introduction", "معرفی و اعتبار"],["plans", "پلن‌ها و قوانین"],["rules", "قوانین و برداشت"],["pros-cons", "مزایا و معایب"],["discount", "کد تخفیف"],["faq", "سوالات متداول"],["discussion", "گفت‌وگوی کاربران"]].map(([anchor, title]) =>
             <a key={anchor} href={`#${anchor}`} className="rounded-lg border border-border-theme px-3 py-2 hover:text-primary">{title}</a>)}
         </nav>
 
         <section id="overview" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
           <h2 className="text-2xl font-bold">مهم‌ترین مشخصات {firm.name} در یک نگاه</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {summary.map(([label, value]) => <div key={label} className="rounded-xl border border-border-theme bg-surface-secondary p-5">
+            {[...summary, ...details.facts.map(item=>[item.label,item.value])].map(([label, value]) => <div key={label} className="rounded-xl border border-border-theme bg-surface-secondary p-5">
               <p className="text-sm text-muted">{label}</p><p className="mt-2 text-lg font-bold">{value || "ثبت نشده"}</p>
             </div>)}
           </div>
+        </section>
+
+        <section id="introduction" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
+          <h2 className="text-2xl font-bold">معرفی و اعتبار {firm.name}</h2>
+          <p className="mt-4 whitespace-pre-line leading-9 text-muted">{details.introduction || firm.description || "توضیح تکمیلی هنوز توسط مدیر ثبت نشده است."}</p>
+          {details.history && <><h3 className="mt-7 text-xl font-bold">سابقه و وضعیت شرکت</h3><p className="mt-3 whitespace-pre-line leading-9 text-muted">{details.history}</p></>}
         </section>
 
         <section id="plans" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
@@ -72,9 +80,12 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
             {[...rules, ["حداقل هزینه ثبت‌شده", firm.fee]].map(([label, value]) =>
               <tr key={label} className="border-b border-border-theme"><th className="w-1/2 p-4 font-semibold">{label}</th><td className="p-4 text-muted">{value || "ثبت نشده"}</td></tr>)}
           </tbody></table></div>
+          {details.plans.length>0 && <div className="mt-7 overflow-x-auto"><h3 className="mb-4 text-xl font-bold">قیمت و مشخصات پلن‌های معاملاتی</h3><table className="w-full min-w-[720px] text-right text-sm"><thead className="bg-surface-secondary"><tr>{["پلن","اندازه حساب","قیمت","هدف سود","افت روزانه","افت کل"].map(x=><th key={x} className="p-3">{x}</th>)}</tr></thead><tbody>{details.plans.map((p,i)=><tr key={i} className="border-b border-border-theme">{[p.name,p.size,p.price,p.target,p.dailyLoss,p.maxLoss].map((v,j)=><td key={j} className="p-3">{v||"—"}</td>)}</tr>)}</tbody></table></div>}
           <p className="mt-4 text-xs text-muted">هیچ ادعای تأییدنشده‌ای درباره امنیت، مجوز قانونی یا پرداخت‌های شرکت در این صفحه درج نشده است.</p>
         </section>
 
+        <section id="rules" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8"><h2 className="text-2xl font-bold">قوانین و شرایط برداشت سود</h2><h3 className="mt-5 font-bold">قوانین معاملاتی</h3><p className="mt-3 whitespace-pre-line leading-9 text-muted">{details.tradingRules||"قوانین تکمیلی هنوز ثبت نشده است؛ شرایط رسمی شرکت را بررسی کنید."}</p><h3 className="mt-6 font-bold">برداشت سود و بازگشت وجه</h3><p className="mt-3 whitespace-pre-line leading-9 text-muted">{details.payoutRules||"جزئیات برداشت هنوز ثبت نشده است."}</p></section>
+        <section id="pros-cons" className="scroll-mt-24 grid gap-4 md:grid-cols-2"><div className="rounded-3xl border border-border-theme bg-surface p-6"><h2 className="text-xl font-bold text-green-500">مزایا</h2><ul className="mt-4 list-inside list-disc space-y-3 leading-8 text-muted">{details.pros.length?details.pros.map((x,i)=><li key={i}>{x}</li>):<li>اطلاعاتی ثبت نشده است.</li>}</ul></div><div className="rounded-3xl border border-border-theme bg-surface p-6"><h2 className="text-xl font-bold text-danger">معایب و محدودیت‌ها</h2><ul className="mt-4 list-inside list-disc space-y-3 leading-8 text-muted">{details.cons.length?details.cons.map((x,i)=><li key={i}>{x}</li>):<li>اطلاعاتی ثبت نشده است.</li>}</ul></div></section>
         <section id="discount" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
           <h2 className="text-2xl font-bold">کد تخفیف {firm.name}</h2>
           {firm.code ? <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-border-theme bg-surface-secondary p-5">
@@ -84,6 +95,8 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
           </div> : <p className="mt-4 text-muted">در حال حاضر کد تخفیفی برای این شرکت ثبت نشده است.</p>}
         </section>
 
+        {details.discounts.length>0 && <section className="rounded-3xl border border-border-theme bg-surface p-6 sm:p-8"><h2 className="mb-5 text-xl font-bold">تخفیف‌های تکمیلی</h2><div className="grid gap-3 sm:grid-cols-2">{details.discounts.map((d,i)=><div key={i} className="rounded-xl border border-border-theme bg-surface-secondary p-4"><p className="font-bold text-primary">{d.amount}</p><code dir="ltr" className="mt-2 inline-block font-bold">{d.code}</code><p className="mt-3 text-sm text-muted">{d.note}</p></div>)}</div></section>}
+        <section id="faq" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8"><h2 className="text-2xl font-bold">سوالات متداول درباره {firm.name}</h2>{details.faqs.length ? <div className="mt-4 space-y-3">{details.faqs.map((x,i)=><details key={i} className="rounded-xl border border-border-theme p-4"><summary className="cursor-pointer font-bold">{x.question}</summary><p className="mt-4 whitespace-pre-line leading-8 text-muted">{x.answer}</p></details>)}</div>:<p className="mt-4 text-muted">سوال متداولی ثبت نشده است.</p>}</section>
         <section id="discussion" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
           <h2 className="text-2xl font-bold">پرسش و گفت‌وگوی کاربران درباره {firm.name}</h2>
           <p className="mt-3 text-sm text-muted">پرسش‌ها و تجربه‌های کاربران تنها پس از تأیید مدیر نمایش داده می‌شوند.</p>

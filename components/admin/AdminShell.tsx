@@ -57,6 +57,7 @@ const navigation = [
     icon: MessageSquare,
   },
   { title: "پرسش‌های شرکت‌ها", path: "/firm-questions", icon: MessageSquare },
+  { title: "بررسی کامل شرکت‌ها", path: "/firm-details", icon: Building2 },
   { title: "ردیف‌های مقایسه", path: "/compare-rows", icon: Building2 },
   {
     title: "نظرات منتخب",
