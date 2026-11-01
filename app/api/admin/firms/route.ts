@@ -7,7 +7,14 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BODY_BYTES = 16 * 1024;
+const MAX_BODY_BYTES = 180 * 1024;
+function validLogo(value: unknown): value is string {
+  return typeof value === "string" && (
+    value === "" || (value.length <= 150000 &&
+    /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value))
+  );
+}
+
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 
@@ -42,6 +49,7 @@ type CreateFirmData = {
   payout: string;
   challenge: string;
   logo_text: string;
+  logo: string;
   is_active: boolean;
   sort_order: number;
 };
@@ -131,6 +139,7 @@ function validateFirm(input: unknown):
 
   const allowedKeys = new Set<string>([
     "id",
+    "logo",
     ...TEXT_FIELDS,
     "sort_order",
     "is_active",
@@ -181,6 +190,7 @@ function validateFirm(input: unknown):
     payout: "",
     challenge: "",
     logo_text: "",
+    logo: "",
     is_active: false,
     sort_order: 0,
   };
@@ -209,6 +219,11 @@ function validateFirm(input: unknown):
     }
 
     firm[field] = text;
+  }
+
+  if ("logo" in values) {
+    if (!validLogo(values.logo)) return { success: false, error: "فرمت لوگو معتبر نیست." };
+    firm.logo = values.logo as string;
   }
 
   if (!firm.name) {

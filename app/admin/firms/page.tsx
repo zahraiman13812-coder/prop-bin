@@ -202,8 +202,7 @@ export default async function AdminFirmsPage() {
                               backgroundColor: firm.color,
                             }}
                           >
-                            {firm.logo_text ||
-                              firm.name.slice(0, 2)}
+                            {firm.logo ? <img src={firm.logo} alt={`لوگوی ${firm.name}`} className="h-full w-full rounded-xl object-contain" /> : (firm.logo_text || firm.name.slice(0, 2))}
                           </div>
 
                           <div>

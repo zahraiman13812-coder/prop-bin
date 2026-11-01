@@ -41,12 +41,17 @@ export const defaultNavigation: NavigationItem[] = [
     visible: true,
   },
   {
+    id: "polls",
+    label: "نظرسنجی پراپ",
+    href: "/polls",
+    visible: true,
+  },
+  {
     id: "articles",
     label: "مقالات پراپ",
     href: "/articles",
     visible: true,
   },
-  { id: "cooperation", label: "همکاری با ما", href: "/cooperation", visible: true },
 ];
 
 export const homeSectionLabels: Record<
@@ -182,6 +187,7 @@ export function parseHomeSections(
 export function isSafeSiteImage(
   value: string
 ): boolean {
+  if (/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length <= 150000) return true;
   if (
     value === "/pb-logo.png" ||
     /^\/uploads\/branding\/[a-f0-9-]+\.(jpg|jpeg|png|webp)$/i.test(value)

@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import FirmLogoUpload from "@/components/admin/FirmLogoUpload";
 import { useRouter } from "next/navigation";
 
 type Firm = {
@@ -20,6 +21,7 @@ type Firm = {
   payout: string;
   challenge: string;
   logo_text: string;
+  logo: string | null;
   is_active: boolean;
   sort_order: number;
 };
@@ -41,7 +43,7 @@ type ApiResponse = {
 const fields: {
   name: keyof Omit<
   FormState,
-  "is_active" | "sort_order" | "website"
+  "is_active" | "sort_order" | "website" | "logo"
 >;
   label: string;
   placeholder?: string;
@@ -113,6 +115,7 @@ export default function FirmEditForm({ firmId }: Props) {
           payout: firm.payout,
           challenge: firm.challenge,
           logo_text: firm.logo_text,
+          logo: firm.logo ?? "",
           is_active: firm.is_active,
           sort_order: firm.sort_order,
         });
@@ -201,6 +204,7 @@ export default function FirmEditForm({ firmId }: Props) {
         payout: saved.payout,
         challenge: saved.challenge,
         logo_text: saved.logo_text,
+        logo: saved.logo ?? "",
         is_active: saved.is_active,
         sort_order: saved.sort_order,
       });
@@ -246,6 +250,7 @@ export default function FirmEditForm({ firmId }: Props) {
 
   return (
     <form onSubmit={saveChanges} className="space-y-6">
+      <FirmLogoUpload value={form.logo ?? ""} onChange={value => changeField("logo", value)} />
       <div className="grid gap-5 rounded-2xl border border-border-theme bg-surface p-5 sm:grid-cols-2">
         {fields.map((field) => (
           <label key={field.name} className="block space-y-2">
