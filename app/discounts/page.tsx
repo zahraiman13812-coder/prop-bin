@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import FirmLogo from "@/components/FirmLogo";
+import Link from "next/link";
 import type { Firm } from "@/lib/data";
 
 type FirmsApiResponse = {
@@ -134,7 +135,7 @@ export default function DiscountsPage() {
 
                   <div className="discount-company">
                     <b>{firm.name}</b>
-                    <small>کد اختصاصی پراپین</small>
+                    <small>کد ثبت‌شده در پراپ‌بین</small>
                   </div>
 
                   <div className="discount-amount">
@@ -159,6 +160,7 @@ export default function DiscountsPage() {
                           : "کپی کد"}
                     </button>
                   </div>
+                  <Link href={`/firms/${encodeURIComponent(firm.id)}`} className="rounded-xl border border-border-theme px-4 py-3 text-sm font-bold text-primary">مشاهده بررسی کامل</Link>
                 </article>
               ))}
             </div>
@@ -175,9 +177,8 @@ export default function DiscountsPage() {
           <div className="container">
             <span>ⓘ</span>
             <p>
-              کدها و درصدهای نمایش‌داده‌شده نمونه هستند.
-              پیش از انتشار، فعال بودن و شرایط استفاده
-              از هر کد را تأیید کنید.
+              کدها و درصدها از اطلاعات شرکت‌های ثبت‌شده در سایت دریافت می‌شوند.
+              اعتبار و شرایط استفاده از هر کد را پیش از خرید از شرکت مربوطه تأیید کنید.
             </p>
           </div>
         </div>

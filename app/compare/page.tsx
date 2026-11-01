@@ -8,6 +8,7 @@ import {
 import type { CSSProperties } from "react";
 import type { Firm } from "@/lib/data";
 import FirmLogo from "@/components/FirmLogo";
+import Link from "next/link";
 type FirmField =
   | "rating"
   | "capital"
@@ -42,9 +43,6 @@ export default function ComparePage() {
  const [managedRows,setManagedRows]=useState<CompareRow[]>([]);
  useEffect(()=>{fetch("/api/compare-rows",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(d=>setManagedRows(Array.isArray(d.rows)?d.rows:[])).catch(()=>{});},[]);
 
-  const [hiddenRows, setHiddenRows] = useState<string[]>([]);
-  const [extraRows, setExtraRows] = useState<string[]>([]);
-  const [newRow, setNewRow] = useState("");
   const [firms, setFirms] = useState<Firm[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -153,7 +151,6 @@ export default function ComparePage() {
           <small>حداکثر ۵ شرکت قابل انتخاب است.</small>
         </div>
 
-        <div className="mb-4 rounded-xl border border-border-theme bg-surface p-4"><p className="mb-3 font-bold">مدیریت ردیف‌های جدول مقایسه</p><div className="flex flex-wrap gap-2">{defaultRows.map(row=><button key={row.key} type="button" onClick={()=>setHiddenRows(prev=>prev.includes(row.key)?prev.filter(x=>x!==row.key):[...prev,row.key])} className="rounded-lg border border-border-theme px-3 py-2 text-xs">{hiddenRows.includes(row.key)?"افزودن":"حذف"} {row.label}</button>)}</div><div className="mt-4 flex gap-2"><input value={newRow} onChange={e=>setNewRow(e.target.value)} placeholder="نام ردیف جدید" maxLength={80} className="rounded-lg border border-border-theme bg-background px-3 py-2 text-foreground"/><button type="button" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground" onClick={()=>{const v=newRow.trim();if(v && !extraRows.includes(v))setExtraRows(prev=>[...prev,v]);setNewRow("");}}>افزودن ردیف</button></div><p className="mt-2 text-xs text-muted">ردیف‌های اضافه‌شده در این صفحه مقدار اختصاصی ندارند؛ برای ذخیره دائمی اطلاعات باید مدیر آن‌ها را ثبت کند.</p></div>
         <div className="table-wrap">
           <table className="compare-table">
             <thead>
@@ -171,13 +168,14 @@ export default function ComparePage() {
                         } as CSSProperties
                       }
                     />
-                    {firm.name}
+                    <div className="mt-2">{firm.name}</div>
+                    <Link href={`/firms/${encodeURIComponent(firm.id)}`} className="mt-2 inline-block text-xs font-semibold text-primary underline">بررسی کامل</Link>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {defaultRows.filter(row=>!hiddenRows.includes(row.key) && !persistedHidden.includes(row.key)).map((row) => (
+              {defaultRows.filter(row=>!persistedHidden.includes(row.key)).map((row) => (
                 <tr key={row.key}>
                   <th>{row.label}</th>
                   {visible.map((firm) => (
@@ -185,18 +183,19 @@ export default function ComparePage() {
                       {row.format
                         ? row.format(firm[row.key])
                         : firm[row.key]}
+                      {row.key === "code" && firm.code && firm.code !== "—" && <button type="button" className="mr-2 rounded-lg border border-border-theme px-2 py-1 text-xs text-primary" onClick={() => void navigator.clipboard.writeText(firm.code)}>کپی</button>}
                     </td>
                   ))}
                 </tr>
               ))}
               {managedRows.filter(row=>!row.row_key&&row.is_visible).map(row=><tr key={row.id}><th>{row.label}</th>{visible.map(firm=><td key={firm.id}>{row.values_json?.[firm.id]||"—"}</td>)}</tr>)}
-              {extraRows.map(label=><tr key={label}><th><button type="button" onClick={()=>setExtraRows(prev=>prev.filter(x=>x!==label))} title="حذف ردیف" className="ml-2 text-danger">×</button>{label}</th>{visible.map(firm=><td key={firm.id}>—</td>)}</tr>)}
+
             </tbody>
           </table>
         </div>
 
         <p className="table-disclaimer">
-          * اطلاعات شرکت‌ها بر اساس داده‌های ثبت‌شده در سایت نمایش داده می‌شوند. پیش از انتخاب، شرایط رسمی شرکت را بررسی کنید.
+          * مقایسه بر اساس شرکت‌ها و کدهای ثبت‌شده توسط مدیر نمایش داده می‌شود. مشخصات، قیمت‌ها و کدها را در سایت رسمی هر شرکت نیز بررسی کنید. پیش از انتخاب، شرایط رسمی شرکت را بررسی کنید.
         </p>
       </div>
     </div>
