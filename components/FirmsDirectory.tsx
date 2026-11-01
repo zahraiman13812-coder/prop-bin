@@ -445,6 +445,7 @@ export default function FirmsDirectory({
                         <ArrowLeft size={15} />
                       </Link>
 
+                      <Link href={`/firms/${encodeURIComponent(firm.id)}`} className="inline-flex items-center gap-2 rounded-lg border border-border-theme bg-surface px-4 py-2.5 text-xs font-semibold text-foreground hover:border-primary">مشاهده بیشتر <ArrowLeft size={15} /></Link>
                       <Link
                         href={`/discounts#${firm.id}`}
                         className="inline-flex items-center gap-2 rounded-lg border border-border-theme bg-surface px-4 py-2.5 text-xs font-semibold text-foreground hover:border-primary"

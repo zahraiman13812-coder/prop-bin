@@ -18,7 +18,7 @@ type FirmField =
   | "challenge"
   | "payout";
 
-const rows: {
+const defaultRows: {
   label: string;
   key: FirmField;
   format?: (value: string) => string;
@@ -37,7 +37,14 @@ const rows: {
   { label: "پرداخت سود", key: "payout" },
 ];
 
+type CompareRow = {id:string;label:string;row_key:string|null;position:number;is_visible:boolean;values_json:Record<string,string>};
 export default function ComparePage() {
+ const [managedRows,setManagedRows]=useState<CompareRow[]>([]);
+ useEffect(()=>{fetch("/api/compare-rows",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(d=>setManagedRows(Array.isArray(d.rows)?d.rows:[])).catch(()=>{});},[]);
+
+  const [hiddenRows, setHiddenRows] = useState<string[]>([]);
+  const [extraRows, setExtraRows] = useState<string[]>([]);
+  const [newRow, setNewRow] = useState("");
   const [firms, setFirms] = useState<Firm[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -91,6 +98,7 @@ export default function ComparePage() {
       .catch(() => {});
   }, []);
 
+  const persistedHidden=managedRows.filter(r=>r.row_key&&!r.is_visible).map(r=>r.row_key);
   const visible = useMemo(
     () =>
       firms.filter((firm) =>
@@ -145,6 +153,7 @@ export default function ComparePage() {
           <small>حداکثر ۵ شرکت قابل انتخاب است.</small>
         </div>
 
+        <div className="mb-4 rounded-xl border border-border-theme bg-surface p-4"><p className="mb-3 font-bold">مدیریت ردیف‌های جدول مقایسه</p><div className="flex flex-wrap gap-2">{defaultRows.map(row=><button key={row.key} type="button" onClick={()=>setHiddenRows(prev=>prev.includes(row.key)?prev.filter(x=>x!==row.key):[...prev,row.key])} className="rounded-lg border border-border-theme px-3 py-2 text-xs">{hiddenRows.includes(row.key)?"افزودن":"حذف"} {row.label}</button>)}</div><div className="mt-4 flex gap-2"><input value={newRow} onChange={e=>setNewRow(e.target.value)} placeholder="نام ردیف جدید" maxLength={80} className="rounded-lg border border-border-theme bg-background px-3 py-2 text-foreground"/><button type="button" className="rounded-lg bg-primary px-4 py-2 text-primary-foreground" onClick={()=>{const v=newRow.trim();if(v && !extraRows.includes(v))setExtraRows(prev=>[...prev,v]);setNewRow("");}}>افزودن ردیف</button></div><p className="mt-2 text-xs text-muted">ردیف‌های اضافه‌شده در این صفحه مقدار اختصاصی ندارند؛ برای ذخیره دائمی اطلاعات باید مدیر آن‌ها را ثبت کند.</p></div>
         <div className="table-wrap">
           <table className="compare-table">
             <thead>
@@ -168,7 +177,7 @@ export default function ComparePage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {defaultRows.filter(row=>!hiddenRows.includes(row.key) && !persistedHidden.includes(row.key)).map((row) => (
                 <tr key={row.key}>
                   <th>{row.label}</th>
                   {visible.map((firm) => (
@@ -180,14 +189,14 @@ export default function ComparePage() {
                   ))}
                 </tr>
               ))}
+              {managedRows.filter(row=>!row.row_key&&row.is_visible).map(row=><tr key={row.id}><th>{row.label}</th>{visible.map(firm=><td key={firm.id}>{row.values_json?.[firm.id]||"—"}</td>)}</tr>)}
+              {extraRows.map(label=><tr key={label}><th><button type="button" onClick={()=>setExtraRows(prev=>prev.filter(x=>x!==label))} title="حذف ردیف" className="ml-2 text-danger">×</button>{label}</th>{visible.map(firm=><td key={firm.id}>—</td>)}</tr>)}
             </tbody>
           </table>
         </div>
 
         <p className="table-disclaimer">
-          * مقادیر بالا نمونه نمایشی هستند و توصیه مالی محسوب
-          نمی‌شوند. پیش از انتشار، اطلاعات و تاریخ آخرین بررسی
-          را تأیید کنید.
+          * اطلاعات شرکت‌ها بر اساس داده‌های ثبت‌شده در سایت نمایش داده می‌شوند. پیش از انتخاب، شرایط رسمی شرکت را بررسی کنید.
         </p>
       </div>
     </div>

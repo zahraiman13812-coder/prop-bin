@@ -122,7 +122,10 @@ export default function Header() {
 
   const links: NavigationItem[] = parseNavigation(
     settings.navigationJson
-  ).filter((item) => item.visible);
+  ).filter((item) => item.visible && item.href !== "/polls");
+  if (!links.some(item => item.href === "/cooperation")) links.push({ id: "cooperation", href: "/cooperation", label: "همکاری با ما", visible: true });
+  const cooperation = links.find(item=>item.href==="/cooperation");
+  if (cooperation) { const at=links.indexOf(cooperation); links.splice(at,1); const articles=links.findIndex(item=>item.href==="/articles"); links.splice(articles>=0?articles+1:links.length,0,cooperation); }
 
   function active(href: string) {
     return href === "/"
@@ -178,7 +181,7 @@ export default function Header() {
                   : "text-muted hover:bg-surface-secondary hover:text-foreground"
               }`}
             >
-              {item.label}
+              <span className={item.href === "/cooperation" ? "underline underline-offset-4 decoration-primary" : ""}>{item.label}</span>
             </Link>
           ))}
         </div>
@@ -231,7 +234,7 @@ export default function Header() {
                     : "text-foreground hover:bg-surface-secondary"
                 }`}
               >
-                {item.label}
+                <span className={item.href === "/cooperation" ? "underline underline-offset-4 decoration-primary" : ""}>{item.label}</span>
               </Link>
             ))}
 

@@ -197,11 +197,6 @@ const features = [
     href: "/discounts",
     Icon: TicketPercent,
   },
-  {
-    title: "نظرسنجی",
-    href: "/polls",
-    Icon: MessageSquare,
-  },
 ];
 
 function TradingVisual() {
@@ -588,7 +583,7 @@ const content: Record<
           </section>
         )}
 
-      {visibleSections.map((id) => (
+      {visibleSections.filter((id) => id !== "reviews").map((id) => (
         <div key={id}>
           {content[id]}
         </div>

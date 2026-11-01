@@ -27,6 +27,7 @@ const EDITABLE_FIELDS = [
   "contactEmail",
   "instagram",
   "telegram",
+  "cooperationTelegram",
   "primaryDark",
   "primaryLight",
 ] as const satisfies readonly (keyof SiteSettings)[];
@@ -52,6 +53,7 @@ const FIELD_LIMITS: Record<EditableField, number> = {
   contactEmail: 254,
   instagram: 500,
   telegram: 500,
+  cooperationTelegram: 500,
   primaryDark: 7,
   primaryLight: 7,
 };
@@ -97,8 +99,8 @@ function normalizeField(field: EditableField, value: unknown): string {
 
   const trimmed = value.trim().slice(0, FIELD_LIMITS[field]);
 
-  if (field === "instagram" || field === "telegram") {
-    return normalizeSocial(trimmed, field);
+  if (field === "instagram" || field === "telegram" || field === "cooperationTelegram") {
+    return normalizeSocial(trimmed, field === "instagram" ? "instagram" : "telegram");
   }
 
   if (field === "contactEmail" && trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {

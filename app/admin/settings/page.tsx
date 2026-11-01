@@ -55,6 +55,7 @@ const groups: {
       },
     ],
   },
+  { title: "همکاری با ما", description: "آیدی تلگرام نمایش داده‌شده در صفحه همکاری", icon: Share2, fields: [ { key: "cooperationTelegram", label: "آیدی یا لینک تلگرام همکاری", placeholder: "@YourTelegramID" } ] },
   {
     title: "تنظیمات هیرو سکشن",
     description:

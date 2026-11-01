@@ -56,6 +56,8 @@ const navigation = [
     path: "/polls",
     icon: MessageSquare,
   },
+  { title: "پرسش‌های شرکت‌ها", path: "/firm-questions", icon: MessageSquare },
+  { title: "ردیف‌های مقایسه", path: "/compare-rows", icon: Building2 },
   {
     title: "نظرات منتخب",
     path: "/featured",
@@ -80,11 +82,6 @@ const navigation = [
     title: "مدیریت ظاهر",
     path: "/appearance",
     icon: Palette,
-  },
-  {
-    title: "تغییر رمز مدیر",
-    path: "/change-password",
-    icon: ShieldCheck,
   },
   {
     title: "تنظیمات سایت",
@@ -117,6 +114,8 @@ export default function AdminShell({
             "/users",
             "/support",
             "/wheel",
+            "/firm-questions",
+            "/compare-rows",
             "/raffle",
           ].includes(item.path)
       )

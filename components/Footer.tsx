@@ -55,7 +55,8 @@ export default function Footer() {
 
   const links: NavigationItem[] = parseNavigation(
     settings.navigationJson
-  ).filter((item) => item.visible);
+  ).filter((item) => item.visible && item.href !== "/polls");
+  if (!links.some(item=>item.href==="/cooperation")) links.push({id:"cooperation",href:"/cooperation",label:"همکاری با ما",visible:true});
 
   return (
     <footer

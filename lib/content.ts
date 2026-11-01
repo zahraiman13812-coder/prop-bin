@@ -54,6 +54,7 @@ export type SiteSettings = {
   contactEmail: string;
   instagram: string;
   telegram: string;
+  cooperationTelegram: string;
   primaryDark: string;
   primaryLight: string;
 
@@ -138,6 +139,7 @@ export const initialContent: Content = {
     contactEmail: "",
     instagram: "",
     telegram: "",
+    cooperationTelegram: "",
 
     primaryDark: "#008cff",
     primaryLight: "#0078ed",
@@ -171,17 +173,12 @@ export const initialContent: Content = {
         visible: true,
       },
       {
-        id: "polls",
-        label: "نظرسنجی پراپ",
-        href: "/polls",
-        visible: true,
-      },
-      {
         id: "articles",
         label: "مقالات پراپ",
         href: "/articles",
         visible: true,
       },
+      { id: "cooperation", label: "همکاری با ما", href: "/cooperation", visible: true },
     ]),
 
     homeSectionsJson: JSON.stringify([

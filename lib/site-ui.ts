@@ -41,17 +41,12 @@ export const defaultNavigation: NavigationItem[] = [
     visible: true,
   },
   {
-    id: "polls",
-    label: "نظرسنجی پراپ",
-    href: "/polls",
-    visible: true,
-  },
-  {
     id: "articles",
     label: "مقالات پراپ",
     href: "/articles",
     visible: true,
   },
+  { id: "cooperation", label: "همکاری با ما", href: "/cooperation", visible: true },
 ];
 
 export const homeSectionLabels: Record<
