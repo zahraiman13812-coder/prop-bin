@@ -298,90 +298,58 @@ export default function FirmsDirectory({
                 id={firm.id}
                 className="min-w-0 scroll-mt-24 overflow-hidden rounded-xl border border-border-theme bg-surface transition-colors hover:border-primary/40"
               >
-                <div className="flex min-w-0 items-center gap-2.5 p-3 sm:gap-5 sm:p-5">
-                  <FirmLogo
-                    firm={firm}
-                    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border-theme bg-surface-secondary text-lg font-black sm:h-16 sm:w-16 sm:text-2xl"
-                    style={{
-                      color: firm.color,
-                    }}
-                  />
-
-                  {/* Middle content */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <h3 className="text-xs font-extrabold text-foreground sm:text-base">
-                        {firm.name}
-                      </h3>
-
-                      {firm.discount &&
-                        numberValue(firm.discount) > 0 && (
-                          <span className="rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-500 sm:text-[10px]">
-                            تخفیف {firm.discount}
-                          </span>
+                <div className="grid min-w-0 grid-cols-1 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
+                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+                    <div className="flex min-w-0 items-center gap-3 sm:shrink-0">
+                      <FirmLogo
+                        firm={firm}
+                        className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border-theme bg-surface-secondary text-xl font-black sm:h-16 sm:w-16 sm:text-2xl"
+                        style={{ color: firm.color }}
+                      />
+                      <div className="min-w-0 sm:hidden">
+                        <h3 className="break-words text-sm font-extrabold text-foreground">{firm.name}</h3>
+                        <div className="mt-1"><FirmStars rating={firm.rating} /></div>
+                        {firm.discount && numberValue(firm.discount) > 0 && (
+                          <span className="mt-1 inline-block rounded-md bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500">تخفیف {firm.discount}</span>
                         )}
+                      </div>
                     </div>
 
-                    <div className="mt-1">
-                      <FirmStars rating={firm.rating} />
-                    </div>
-
-                    <div className="mt-2 grid grid-cols-3 gap-1 sm:mt-3 sm:gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[9px] text-muted sm:text-xs">
-                          سرمایه
-                        </p>
-                        <p
-                          dir="ltr"
-                          className="mt-1 truncate text-left text-[10px] font-bold text-foreground sm:text-sm"
-                        >
-                          {firm.capital}
-                        </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="hidden flex-wrap items-center gap-x-2 gap-y-1 sm:flex">
+                        <h3 className="break-words text-base font-extrabold text-foreground">{firm.name}</h3>
+                        {firm.discount && numberValue(firm.discount) > 0 && (
+                          <span className="rounded-md bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-500">تخفیف {firm.discount}</span>
+                        )}
                       </div>
+                      <div className="mt-1 hidden sm:block"><FirmStars rating={firm.rating} /></div>
 
-                      <div className="min-w-0">
-                        <p className="text-[9px] text-muted sm:text-xs">
-                          سهم سود
-                        </p>
-                        <p className="mt-1 text-[10px] font-bold text-foreground sm:text-sm">
-                          {firm.profit}
-                        </p>
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-[9px] text-muted sm:text-xs">
-                          هزینه چالش
-                        </p>
-                        <p
-                          dir="ltr"
-                          className="mt-1 truncate text-left text-[10px] font-bold text-foreground sm:text-sm"
-                        >
-                          {firm.fee}
-                        </p>
+                      <div className="mt-1 grid min-w-0 grid-cols-1 gap-2 min-[390px]:grid-cols-3 sm:mt-3 sm:gap-4">
+                        <div className="min-w-0 rounded-lg bg-surface-secondary/50 p-2 sm:bg-transparent sm:p-0">
+                          <p className="text-[11px] text-muted sm:text-xs">سرمایه</p>
+                          <p dir="ltr" className="mt-1 break-words text-right text-xs font-bold text-foreground sm:text-sm">{firm.capital}</p>
+                        </div>
+                        <div className="min-w-0 rounded-lg bg-surface-secondary/50 p-2 sm:bg-transparent sm:p-0">
+                          <p className="text-[11px] text-muted sm:text-xs">سهم سود</p>
+                          <p className="mt-1 break-words text-xs font-bold text-foreground sm:text-sm">{firm.profit}</p>
+                        </div>
+                        <div className="min-w-0 rounded-lg bg-surface-secondary/50 p-2 sm:bg-transparent sm:p-0">
+                          <p className="text-[11px] text-muted sm:text-xs">هزینه چالش</p>
+                          <p dir="ltr" className="mt-1 break-words text-right text-xs font-bold text-foreground sm:text-sm">{firm.fee}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Action */}
                   <button
                     type="button"
-                    onClick={() =>
-                      setSelected(
-                        expanded ? null : firm.id
-                      )
-                    }
+                    onClick={() => setSelected(expanded ? null : firm.id)}
                     aria-expanded={expanded}
                     aria-controls={`firm-details-${firm.id}`}
-                    className="flex h-10 w-[76px] shrink-0 cursor-pointer items-center justify-center gap-1 rounded-lg bg-primary px-2 text-[10px] font-bold text-primary-foreground transition-colors hover:bg-primary-hover sm:h-11 sm:w-[132px] sm:text-xs"
+                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-hover lg:w-auto lg:min-w-[132px]"
                   >
-                    {expanded
-                      ? "بستن"
-                      : "بررسی کامل"}
-
-                    <ArrowLeft
-                      size={13}
-                      className="hidden sm:block"
-                    />
+                    {expanded ? "بستن" : "بررسی کامل"}
+                    <ArrowLeft size={15} />
                   </button>
                 </div>
 
@@ -445,7 +413,6 @@ export default function FirmsDirectory({
                         <ArrowLeft size={15} />
                       </Link>
 
-                      <Link href={`/firms/${encodeURIComponent(firm.id)}`} className="inline-flex items-center gap-2 rounded-lg border border-border-theme bg-surface px-4 py-2.5 text-xs font-semibold text-foreground hover:border-primary">مشاهده بیشتر <ArrowLeft size={15} /></Link>
                       <Link
                         href={`/discounts#${firm.id}`}
                         className="inline-flex items-center gap-2 rounded-lg border border-border-theme bg-surface px-4 py-2.5 text-xs font-semibold text-foreground hover:border-primary"
