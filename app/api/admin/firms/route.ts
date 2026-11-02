@@ -1,4 +1,3 @@
-import { firmSpecificationFields } from "@/lib/firm-specifications";
 
 import { NextResponse } from "next/server";
 
@@ -23,6 +22,7 @@ const TEXT_FIELDS = [
   "color",
   "description",
   "payout",
+  "purchase_method",
   "challenge",
   "logo_text",
 ] as const;
@@ -41,6 +41,7 @@ type CreateFirmData = {
   color: string;
   description: string;
   payout: string;
+  purchase_method: string;
   challenge: string;
   logo_text: string;
   is_active: boolean;
@@ -135,7 +136,6 @@ function validateFirm(input: unknown):
     ...TEXT_FIELDS,
     "sort_order",
     "is_active",
-    "specifications",
   ]);
 
   for (const key of Object.keys(values)) {
@@ -181,6 +181,7 @@ function validateFirm(input: unknown):
     color: "#64748b",
     description: "",
     payout: "",
+    purchase_method: "",
     challenge: "",
     logo_text: "",
     is_active: false,
@@ -388,18 +389,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const rawSpecs = (input as Record<string,unknown>).specifications;
-    if (rawSpecs !== undefined) {
-      if (!rawSpecs || typeof rawSpecs !== "object" || Array.isArray(rawSpecs)) {
-        return json({success:false,error:"مشخصات تکمیلی نامعتبر است."},400);
-      }
-      const specInput=rawSpecs as Record<string,unknown>;
-      const keys=new Set<string>(firmSpecificationFields.map(f=>f.key));
-      if (Object.keys(specInput).some(k=>!keys.has(k) || typeof specInput[k]!=="string" || (specInput[k] as string).length>500)) {
-        return json({success:false,error:"مقدار مشخصات تکمیلی نامعتبر است."},400);
-      }
-    }
-
     // 6. ثبت شرکت در Supabase
     
     // 6. ثبت شرکت در PostgreSQL
@@ -437,15 +426,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const specInput = (input as Record<string,unknown>).specifications as Record<string,string> | undefined;
-    if (specInput && Object.values(specInput).some(v=>v.trim())) {
-      const {error:detailsError} = await supabase.from("firm_details").insert({firm_id:data.id,content:{specifications:specInput},updated_at:new Date().toISOString()});
-      if(detailsError) {
-        console.error("Firm specifications save failed",detailsError);
-        await supabase.from("prop_firms").delete().eq("id",data.id);
-        return json({success:false,error:"ثبت مشخصات تکمیلی ناموفق بود؛ Migration دیتابیس را بررسی کنید."},500);
-      }
-    }
     return json(
       {
         success: true,

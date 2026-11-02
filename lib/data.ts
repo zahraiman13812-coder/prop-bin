@@ -10,6 +10,7 @@ export type Firm = {
   color: string;
   description: string;
   payout: string;
+  purchaseMethod?: string;
   challenge: string;
   logo?: string;
   logoText?: string;

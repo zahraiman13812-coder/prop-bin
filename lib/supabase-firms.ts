@@ -16,6 +16,7 @@ type FirmRow = {
   color: string;
   description: string;
   payout: string;
+  purchase_method: string | null;
   challenge: string;
   logo_text: string;
   logo: string | null;
@@ -39,6 +40,7 @@ function mapFirm(row: FirmRow): Firm {
     color: row.color,
     description: row.description,
     payout: row.payout,
+    purchaseMethod: row.purchase_method ?? "",
     challenge: row.challenge,
     logoText: row.logo_text,
 
@@ -72,6 +74,7 @@ export async function getActivePropFirms(): Promise<Firm[]> {
         "color",
         "description",
         "payout",
+        "purchase_method",
         "challenge",
         "logo_text",
         "logo",

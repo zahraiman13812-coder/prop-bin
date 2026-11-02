@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import FirmLogoUpload from "@/components/admin/FirmLogoUpload";
 import { useRouter } from "next/navigation";
 
 type Firm = {
@@ -19,9 +18,9 @@ type Firm = {
   color: string;
   description: string;
   payout: string;
+  purchase_method: string;
   challenge: string;
   logo_text: string;
-  logo: string | null;
   is_active: boolean;
   sort_order: number;
 };
@@ -43,7 +42,7 @@ type ApiResponse = {
 const fields: {
   name: keyof Omit<
   FormState,
-  "is_active" | "sort_order" | "website" | "logo"
+  "is_active" | "sort_order" | "website"
 >;
   label: string;
   placeholder?: string;
@@ -54,9 +53,8 @@ const fields: {
   { name: "capital", label: "سرمایه", dir: "ltr" },
   { name: "profit", label: "درصد سود", dir: "ltr" },
   { name: "fee", label: "هزینه چالش", dir: "ltr" },
-  { name: "discount", label: "میزان تخفیف", dir: "ltr" },
-  { name: "code", label: "کد تخفیف", dir: "ltr" },
-  { name: "payout", label: "تقسیم سود" },
+  { name: "payout", label: "پرداخت سود" },
+  { name: "purchase_method", label: "نحوه خرید" },
   { name: "challenge", label: "نوع چالش" },
   { name: "logo_text", label: "متن جایگزین لوگو" },
   { name: "color", label: "رنگ شرکت", dir: "ltr" },
@@ -113,9 +111,9 @@ export default function FirmEditForm({ firmId }: Props) {
           description: firm.description,
           website: firm.website ?? "",
           payout: firm.payout,
+          purchase_method: firm.purchase_method ?? "",
           challenge: firm.challenge,
           logo_text: firm.logo_text,
-          logo: firm.logo ?? "",
           is_active: firm.is_active,
           sort_order: firm.sort_order,
         });
@@ -202,9 +200,9 @@ export default function FirmEditForm({ firmId }: Props) {
         description: saved.description,
         website: saved.website ?? "",
         payout: saved.payout,
+        purchase_method: saved.purchase_method ?? "",
         challenge: saved.challenge,
         logo_text: saved.logo_text,
-        logo: saved.logo ?? "",
         is_active: saved.is_active,
         sort_order: saved.sort_order,
       });
@@ -250,7 +248,6 @@ export default function FirmEditForm({ firmId }: Props) {
 
   return (
     <form onSubmit={saveChanges} className="space-y-6">
-      <FirmLogoUpload value={form.logo ?? ""} onChange={value => changeField("logo", value)} />
       <div className="grid gap-5 rounded-2xl border border-border-theme bg-surface p-5 sm:grid-cols-2">
         {fields.map((field) => (
           <label key={field.name} className="block space-y-2">

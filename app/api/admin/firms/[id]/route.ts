@@ -11,14 +11,7 @@ type Context = {
   params: Promise<{ id: string }>;
 };
 
-const MAX_BODY_SIZE = 180 * 1024;
-function validLogo(value: unknown): value is string {
-  return typeof value === "string" && (
-    value === "" || (value.length <= 150000 &&
-    /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value))
-  );
-}
-
+const MAX_BODY_SIZE = 16 * 1024;
 
 const FIRM_ID_PATTERN =
   /^[a-z0-9][a-z0-9_-]{0,79}$/;
@@ -34,6 +27,7 @@ const TEXT_FIELDS = [
   "color",
   "description",
   "payout",
+  "purchase_method",
   "challenge",
   "logo_text",
 ] as const;
@@ -43,7 +37,6 @@ type TextField = (typeof TEXT_FIELDS)[number];
 type UpdateFirm = Partial<
   Record<TextField, string>
 > & {
-  logo?: string;
   website?: string | null;
   is_active?: boolean;
   sort_order?: number;
@@ -134,7 +127,6 @@ function validateUpdate(input: unknown):
   const allowed = new Set<string>([
   ...TEXT_FIELDS,
   "website",
-  "logo",
   "is_active",
   "sort_order",
 ]);
@@ -158,10 +150,6 @@ function validateUpdate(input: unknown):
   }
 
   const data: UpdateFirm = {};
-  if ("logo" in values) {
-    if (!validLogo(values.logo)) return { success: false, error: "فرمت لوگو معتبر نیست." };
-    data.logo = values.logo as string;
-  }
 
   for (const field of TEXT_FIELDS) {
     if (!(field in values)) continue;
