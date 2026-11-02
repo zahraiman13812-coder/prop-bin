@@ -23,7 +23,7 @@ import {
   type HomeSectionId,
 } from "@/lib/site-ui";
 
-import FirmCard from "@/components/FirmCard";
+import HomeFirmCarousel from "@/components/HomeFirmCarousel";
 import ArticleCard from "@/components/ArticleCard";
 import FeaturedReviews from "@/components/FeaturedReviews";
 
@@ -197,6 +197,7 @@ const features = [
     href: "/discounts",
     Icon: TicketPercent,
   },
+  { title: "همکاری با ما", href: "/cooperation", Icon: MessageSquare },
 ];
 
 function TradingVisual() {
@@ -458,14 +459,7 @@ const content: Record<
           </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {firms.slice(0, 3).map((firm) => (
-            <FirmCard
-              key={firm.id}
-              firm={firm}
-            />
-          ))}
-        </div>
+        <HomeFirmCarousel firms={firms} />
       </section>
     ),
 
