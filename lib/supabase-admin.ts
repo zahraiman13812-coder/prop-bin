@@ -6,7 +6,7 @@ import path from 'node:path';
 const globalDb = globalThis as typeof globalThis & { __propinPool?: Pool };
 const pool = globalDb.__propinPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 12 });
 if (process.env.NODE_ENV !== 'production') globalDb.__propinPool = pool;
-const tables = new Set(['admin_credentials','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_questions','firm_details','firm_compare_rows','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads','wheel_draws','wheel_prizes','wheel_settings','wheel_spins']);
+const tables = new Set(['admin_credentials','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads','wheel_draws','wheel_prizes','wheel_settings','wheel_spins']);
 const ident = (v: string) => { if (!/^[a-z][a-z0-9_]*$/.test(v)) throw Error('Invalid SQL identifier'); return '"'+v+'"'; };
 const safeTable = (name: string) => { if (!tables.has(name)) throw Error('Unknown table: '+name); return ident(name); };
 const storageRoot = path.join(process.cwd(), '.uploads');

@@ -1,3 +1,4 @@
+import { firmSpecificationFields } from "@/lib/firm-specifications";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FirmLogo from "@/components/FirmLogo";
@@ -58,7 +59,6 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
             <a key={anchor} href={`#${anchor}`} className="rounded-lg border border-border-theme px-3 py-2 hover:text-primary">{title}</a>)}
         </nav>
 
-        {details.customHtml && <section aria-label={`بررسی اختصاصی ${firm.name}`} className="overflow-hidden rounded-3xl border border-border-theme bg-surface p-3 sm:p-6"><h2 className="mb-4 text-xl font-bold">بررسی اختصاصی {firm.name}</h2><iframe title={`بررسی اختصاصی ${firm.name}`} sandbox="" referrerPolicy="no-referrer" loading="lazy" className="w-full rounded-xl border border-border-theme bg-white" style={{height:"850px"}} srcDoc={`<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>${details.customHtml}</body></html>`}/></section>}
         <section id="overview" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">
           <h2 className="text-2xl font-bold">مهم‌ترین مشخصات {firm.name} در یک نگاه</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -85,6 +85,7 @@ export default async function FirmDetails({ params }: { params: Promise<{ id: st
           <p className="mt-4 text-xs text-muted">هیچ ادعای تأییدنشده‌ای درباره امنیت، مجوز قانونی یا پرداخت‌های شرکت در این صفحه درج نشده است.</p>
         </section>
 
+        <section id="specifications" className="rounded-3xl border border-border-theme bg-surface p-5 sm:p-8"><h2 className="mb-5 text-xl font-bold">مشخصات کامل و قوانین شرکت</h2><div className="grid gap-3 md:grid-cols-2">{firmSpecificationFields.map(field=><div key={field.key} className="min-w-0 rounded-xl border border-border-theme p-4"><p className="text-xs text-muted">{field.label}</p><p className="mt-2 break-words text-sm font-semibold">{details.specifications?.[field.key]||"ثبت نشده"}</p></div>)}</div></section>
         <section id="rules" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8"><h2 className="text-2xl font-bold">قوانین و شرایط برداشت سود</h2><h3 className="mt-5 font-bold">قوانین معاملاتی</h3><p className="mt-3 whitespace-pre-line leading-9 text-muted">{details.tradingRules||"قوانین تکمیلی هنوز ثبت نشده است؛ شرایط رسمی شرکت را بررسی کنید."}</p><h3 className="mt-6 font-bold">برداشت سود و بازگشت وجه</h3><p className="mt-3 whitespace-pre-line leading-9 text-muted">{details.payoutRules||"جزئیات برداشت هنوز ثبت نشده است."}</p></section>
         <section id="pros-cons" className="scroll-mt-24 grid gap-4 md:grid-cols-2"><div className="rounded-3xl border border-border-theme bg-surface p-6"><h2 className="text-xl font-bold text-green-500">مزایا</h2><ul className="mt-4 list-inside list-disc space-y-3 leading-8 text-muted">{details.pros.length?details.pros.map((x,i)=><li key={i}>{x}</li>):<li>اطلاعاتی ثبت نشده است.</li>}</ul></div><div className="rounded-3xl border border-border-theme bg-surface p-6"><h2 className="text-xl font-bold text-danger">معایب و محدودیت‌ها</h2><ul className="mt-4 list-inside list-disc space-y-3 leading-8 text-muted">{details.cons.length?details.cons.map((x,i)=><li key={i}>{x}</li>):<li>اطلاعاتی ثبت نشده است.</li>}</ul></div></section>
         <section id="discount" className="scroll-mt-24 rounded-3xl border border-border-theme bg-surface p-6 sm:p-8">

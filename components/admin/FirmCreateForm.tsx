@@ -1,9 +1,10 @@
-
 "use client";
+import { firmSpecificationFields, type FirmSpecifications } from "@/lib/firm-specifications";
+
+
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import FirmLogoUpload from "@/components/admin/FirmLogoUpload";
 
 type FirmForm = {
   id: string;
@@ -19,13 +20,12 @@ type FirmForm = {
   payout: string;
   challenge: string;
   logo_text: string;
-  logo: string;
   sort_order: string;
 };
 
 type TextField = Exclude<
   keyof FirmForm,
-  "description" | "sort_order" | "logo"
+  "description" | "sort_order"
 >;
 
 type CreateResponse = {
@@ -51,7 +51,6 @@ const initialForm: FirmForm = {
   payout: "",
   challenge: "",
   logo_text: "",
-  logo: "",
   sort_order: "0",
 };
 
@@ -101,6 +100,18 @@ const fields: {
     dir: "ltr",
   },
   {
+    name: "discount",
+    label: "میزان تخفیف",
+    placeholder: "10%",
+    dir: "ltr",
+  },
+  {
+    name: "code",
+    label: "کد تخفیف",
+    placeholder: "PROPIN10",
+    dir: "ltr",
+  },
+  {
     name: "payout",
     label: "پرداخت / تقسیم سود",
     placeholder: "تا ۸۰٪",
@@ -128,6 +139,7 @@ export default function FirmCreateForm() {
   const [form, setForm] = useState<FirmForm>(
     initialForm
   );
+  const [specifications,setSpecifications] = useState<FirmSpecifications>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -234,9 +246,9 @@ export default function FirmCreateForm() {
             payout: form.payout.trim(),
             challenge: form.challenge.trim(),
             logo_text: form.logo_text.trim(),
-            logo: form.logo,
             sort_order: sortOrder,
             is_active: false,
+            specifications,
           }),
         }
       );
@@ -328,8 +340,7 @@ export default function FirmCreateForm() {
         </div>
       </div>
 
-      <FirmLogoUpload value={form.logo} onChange={value => update("logo", value)} />
-
+      <div className="rounded-2xl border border-border-theme bg-surface p-5"><h2 className="text-lg font-extrabold">مشخصات پیشرفته شرکت</h2><p className="mt-2 text-xs text-muted">فیلدها اختیاری هستند؛ اطلاعات ثبت‌شده در مقایسه و بررسی کامل نشان داده می‌شوند.</p><div className="mt-5 grid gap-4 sm:grid-cols-2">{firmSpecificationFields.map(field=><label key={field.key} className="block text-sm"><span className="font-bold">{field.label}</span><input className="mt-2 w-full rounded-xl border border-border-theme bg-background p-3 text-foreground" value={specifications[field.key]||""} maxLength={500} onChange={e=>setSpecifications(old=>({...old,[field.key]:e.target.value}))} /></label>)}</div></div>
       <div className="rounded-2xl border border-border-theme bg-surface p-5">
         <label className="block space-y-2">
           <span className="text-sm font-bold">

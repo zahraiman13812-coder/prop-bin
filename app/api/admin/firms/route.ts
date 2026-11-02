@@ -1,3 +1,4 @@
+import { firmSpecificationFields } from "@/lib/firm-specifications";
 
 import { NextResponse } from "next/server";
 
@@ -7,14 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BODY_BYTES = 180 * 1024;
-function validLogo(value: unknown): value is string {
-  return typeof value === "string" && (
-    value === "" || (value.length <= 150000 &&
-    /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value))
-  );
-}
-
+const MAX_BODY_BYTES = 16 * 1024;
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 
@@ -49,7 +43,6 @@ type CreateFirmData = {
   payout: string;
   challenge: string;
   logo_text: string;
-  logo: string;
   is_active: boolean;
   sort_order: number;
 };
@@ -139,10 +132,10 @@ function validateFirm(input: unknown):
 
   const allowedKeys = new Set<string>([
     "id",
-    "logo",
     ...TEXT_FIELDS,
     "sort_order",
     "is_active",
+    "specifications",
   ]);
 
   for (const key of Object.keys(values)) {
@@ -190,7 +183,6 @@ function validateFirm(input: unknown):
     payout: "",
     challenge: "",
     logo_text: "",
-    logo: "",
     is_active: false,
     sort_order: 0,
   };
@@ -219,11 +211,6 @@ function validateFirm(input: unknown):
     }
 
     firm[field] = text;
-  }
-
-  if ("logo" in values) {
-    if (!validLogo(values.logo)) return { success: false, error: "فرمت لوگو معتبر نیست." };
-    firm.logo = values.logo as string;
   }
 
   if (!firm.name) {
@@ -401,6 +388,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const rawSpecs = (input as Record<string,unknown>).specifications;
+    if (rawSpecs !== undefined) {
+      if (!rawSpecs || typeof rawSpecs !== "object" || Array.isArray(rawSpecs)) {
+        return json({success:false,error:"مشخصات تکمیلی نامعتبر است."},400);
+      }
+      const specInput=rawSpecs as Record<string,unknown>;
+      const keys=new Set<string>(firmSpecificationFields.map(f=>f.key));
+      if (Object.keys(specInput).some(k=>!keys.has(k) || typeof specInput[k]!=="string" || (specInput[k] as string).length>500)) {
+        return json({success:false,error:"مقدار مشخصات تکمیلی نامعتبر است."},400);
+      }
+    }
+
     // 6. ثبت شرکت در Supabase
     
     // 6. ثبت شرکت در PostgreSQL
@@ -438,6 +437,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const specInput = (input as Record<string,unknown>).specifications as Record<string,string> | undefined;
+    if (specInput && Object.values(specInput).some(v=>v.trim())) {
+      const {error:detailsError} = await supabase.from("firm_details").insert({firm_id:data.id,content:{specifications:specInput},updated_at:new Date().toISOString()});
+      if(detailsError) {
+        console.error("Firm specifications save failed",detailsError);
+        await supabase.from("prop_firms").delete().eq("id",data.id);
+        return json({success:false,error:"ثبت مشخصات تکمیلی ناموفق بود؛ Migration دیتابیس را بررسی کنید."},500);
+      }
+    }
     return json(
       {
         success: true,

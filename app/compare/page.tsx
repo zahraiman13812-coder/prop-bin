@@ -1,4 +1,6 @@
 "use client";
+import { firmSpecificationFields, type FirmSpecifications } from "@/lib/firm-specifications";
+
 
 import {
   useEffect,
@@ -40,6 +42,8 @@ const defaultRows: {
 
 type CompareRow = {id:string;label:string;row_key:string|null;position:number;is_visible:boolean;values_json:Record<string,string>};
 export default function ComparePage() {
+ const [specifications,setSpecifications]=useState<Record<string,FirmSpecifications>>({});
+ useEffect(()=>{fetch("/api/firm-specifications",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(j=>setSpecifications(j.specifications||{})).catch(()=>{});},[]);
  const [managedRows,setManagedRows]=useState<CompareRow[]>([]);
  useEffect(()=>{fetch("/api/compare-rows",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(d=>setManagedRows(Array.isArray(d.rows)?d.rows:[])).catch(()=>{});},[]);
 
@@ -188,6 +192,7 @@ export default function ComparePage() {
                   ))}
                 </tr>
               ))}
+              {firmSpecificationFields.map(field=><tr key={field.key}><th>{field.label}</th>{visible.map(firm=><td key={firm.id} className="break-words">{specifications[firm.id]?.[field.key]||"ثبت نشده"}</td>)}</tr>)}
               {managedRows.filter(row=>!row.row_key&&row.is_visible).map(row=><tr key={row.id}><th>{row.label}</th>{visible.map(firm=><td key={firm.id}>{row.values_json?.[firm.id]||"—"}</td>)}</tr>)}
 
             </tbody>
