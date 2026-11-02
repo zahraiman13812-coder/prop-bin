@@ -3,6 +3,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import FirmLogoUpload from "@/components/admin/FirmLogoUpload";
 
 type FirmForm = {
   id: string;
@@ -19,12 +20,13 @@ type FirmForm = {
   purchase_method: string;
   challenge: string;
   logo_text: string;
+  logo: string;
   sort_order: string;
 };
 
 type TextField = Exclude<
   keyof FirmForm,
-  "description" | "sort_order"
+  "description" | "sort_order" | "logo"
 >;
 
 type CreateResponse = {
@@ -51,6 +53,7 @@ const initialForm: FirmForm = {
   purchase_method: "",
   challenge: "",
   logo_text: "",
+  logo: "",
   sort_order: "0",
 };
 
@@ -239,6 +242,7 @@ export default function FirmCreateForm() {
             purchase_method: form.purchase_method.trim(),
             challenge: form.challenge.trim(),
             logo_text: form.logo_text.trim(),
+            logo: form.logo,
             sort_order: sortOrder,
             is_active: false,
           }),
@@ -284,6 +288,7 @@ export default function FirmCreateForm() {
       className="space-y-6"
       dir="rtl"
     >
+      <FirmLogoUpload value={form.logo} onChange={(value) => update("logo", value)} />
       <div className="rounded-2xl border border-border-theme bg-surface p-5">
         <h2 className="text-lg font-extrabold">
           اطلاعات شرکت جدید

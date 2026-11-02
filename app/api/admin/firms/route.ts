@@ -7,7 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BODY_BYTES = 16 * 1024;
+const MAX_BODY_BYTES = 180 * 1024;
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,79}$/;
 
@@ -44,6 +44,7 @@ type CreateFirmData = {
   purchase_method: string;
   challenge: string;
   logo_text: string;
+  logo: string;
   is_active: boolean;
   sort_order: number;
 };
@@ -134,6 +135,7 @@ function validateFirm(input: unknown):
   const allowedKeys = new Set<string>([
     "id",
     ...TEXT_FIELDS,
+    "logo",
     "sort_order",
     "is_active",
   ]);
@@ -184,9 +186,22 @@ function validateFirm(input: unknown):
     purchase_method: "",
     challenge: "",
     logo_text: "",
+    logo: "",
     is_active: false,
     sort_order: 0,
   };
+
+  // لوگوی بارگذاری‌شده فقط باید PNG/JPEG/WebP با حجم Base64 محدود باشد.
+  if ("logo" in values) {
+    if (typeof values.logo !== "string" ||
+      (values.logo !== "" && (
+        values.logo.length > 150000 ||
+        !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(values.logo)
+      ))) {
+      return { success: false, error: "فرمت یا حجم لوگوی شرکت معتبر نیست." };
+    }
+    firm.logo = values.logo;
+  }
 
   for (const field of TEXT_FIELDS) {
     if (!(field in values)) continue;
