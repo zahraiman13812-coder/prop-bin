@@ -137,7 +137,7 @@ export default function GlobalSearchBar() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="جست‌وجو در پراپ بین"
+        aria-label="جست‌وجو در پراپ‌بین"
         className="my-auto w-full max-w-[590px] overflow-hidden rounded-2xl border border-border-theme bg-surface text-foreground shadow-2xl"
       >
         <form
@@ -237,7 +237,7 @@ export default function GlobalSearchBar() {
         </div>
 
         <div className="flex items-center justify-between border-t border-border-theme bg-surface-secondary px-4 py-3 text-[10px] text-muted sm:px-5">
-          <span>جست‌وجوی سریع در پراپ بین</span>
+          <span>جست‌وجوی سریع در پراپ‌بین</span>
           <span className="hidden sm:inline">
             ENTER برای جست‌وجو
           </span>

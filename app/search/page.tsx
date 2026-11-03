@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "جست‌وجو",
   description:
-    "جست‌وجو در شرکت‌های پراپ، مقالات آموزشی و کدهای تخفیف پراپ بین.",
+    "جست‌وجو در شرکت‌های پراپ، مقالات آموزشی و کدهای تخفیف پراپ‌بین.",
 };
 
 type Props = {
@@ -112,7 +112,7 @@ export default async function SearchPage({
 
             <div>
               <h1 className="text-2xl font-extrabold">
-                جست‌وجو در پراپ بین
+                جست‌وجو در پراپ‌بین
               </h1>
 
               <p className="mt-2 text-xs text-muted">

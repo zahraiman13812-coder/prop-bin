@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "مقالات و آموزش پراپ",
   description:
-    "مقالات آموزشی و تحلیلی درباره شرکت‌های پراپ، مدیریت ریسک، دراودان و انتخاب چالش مناسب؛ همراه با راهنمای خرید و مقایسه.",
+    "مقالات آموزشی پراپ‌بین درباره مقایسه شرکت‌های پراپ، قوانین چالش، مدیریت ریسک، دراودان، برداشت سود و انتخاب آگاهانه حساب معاملاتی.",
   keywords: [
     "مقالات پراپ",
     "آموزش پراپ",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "مقالات و آموزش پراپ",
     description:
-      "راهنماهای کوتاه و کاربردی برای شناخت شرکت‌های پراپ و تصمیم‌گیری بهتر.",
+      "راهنماهای کاربردی پراپ‌بین برای شناخت چالش‌های پراپ، قوانین معاملاتی و مقایسه گزینه‌ها.",
     url: "/articles",
     locale: "fa_IR",
     images: ["/pb-logo.png"],
@@ -69,7 +69,7 @@ export default async function ArticlesPage() {
   };
 
   return (
-    <div className="page-shell">
+    <div className="page-shell min-w-0 overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -77,21 +77,26 @@ export default async function ArticlesPage() {
         }}
       />
 
-      <div className="container">
+      <div className="container min-w-0">
         <div className="page-heading">
           <span className="eyebrow">
-            مجله پراپ بین
+            مجله پراپ‌بین
           </span>
           <h1>
             مقالات و <em>آموزش</em>
           </h1>
           <p>
-            راهنماهای کوتاه و کاربردی برای شناخت
-            شرکت‌های پراپ و تصمیم‌گیری بهتر.
+            راهنماهای آموزشی درباره انتخاب شرکت پراپ، مقایسه چالش‌ها، مدیریت ریسک و قوانین برداشت سود؛ برای تصمیم‌گیری آگاهانه‌تر.
           </p>
         </div>
 
-        <div className="article-grid article-grid-page">
+        <div className="article-grid article-grid-page min-w-0">
+          {articles.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-border-theme bg-surface p-6 text-center sm:p-10">
+              <p className="text-base font-bold text-foreground">هنوز مقاله‌ای منتشر نشده است.</p>
+              <p className="mt-2 text-sm leading-7 text-muted">پس از انتشار نخستین مقاله، محتوای آموزشی در این بخش نمایش داده می‌شود.</p>
+            </div>
+          )}
           {articles.map((article) => (
             <ArticleCard
               key={article.slug}

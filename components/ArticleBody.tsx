@@ -24,13 +24,13 @@ export default function ArticleBody({ body }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5 break-words [overflow-wrap:anywhere] [&_img]:h-auto [&_img]:max-w-full [&_iframe]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
       {blocks.map((block, index) => {
         if (block.startsWith("### ")) {
           return (
             <h3
               key={index}
-              className="pt-2 text-lg font-extrabold leading-8 text-foreground"
+              className="break-words pt-2 text-base font-extrabold leading-8 text-foreground sm:text-lg"
             >
               {block.slice(4)}
             </h3>
@@ -41,7 +41,7 @@ export default function ArticleBody({ body }: Props) {
           return (
             <h2
               key={index}
-              className="pt-3 text-xl font-extrabold leading-9 text-foreground sm:text-2xl"
+              className="break-words pt-3 text-lg font-extrabold leading-9 text-foreground sm:text-2xl"
             >
               {block.slice(3)}
             </h2>
@@ -71,7 +71,7 @@ export default function ArticleBody({ body }: Props) {
         return (
           <p
             key={index}
-            className="whitespace-pre-wrap break-words text-sm leading-9 text-foreground sm:text-base"
+            className="whitespace-pre-wrap break-words text-sm leading-8 text-foreground sm:text-base sm:leading-9"
           >
             {block}
           </p>

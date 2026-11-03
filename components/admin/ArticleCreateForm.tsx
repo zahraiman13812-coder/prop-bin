@@ -126,7 +126,7 @@ export default function ArticleCreateForm() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="mb-2 text-sm font-bold text-primary">
-              پنل مدیریت پراپین
+              پنل مدیریت پراپ‌بین
             </p>
 
             <h1 className="text-2xl font-extrabold sm:text-3xl">
@@ -256,7 +256,7 @@ export default function ArticleCreateForm() {
                   <input
                     id="author"
                     name="author"
-                    defaultValue="تیم پراپ بین"
+                    defaultValue="تیم پراپ‌بین"
                     className={inputClass}
                   />
                 </div>

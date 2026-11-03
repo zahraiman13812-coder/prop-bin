@@ -95,7 +95,7 @@ export default async function Dashboard() {
     <div className="space-y-7">
       <div>
         <h2 className="text-2xl font-bold">
-          خوش اومدی به پنل پراپ بین
+          خوش اومدی به پنل پراپ‌بین
         </h2>
         <p className="mt-2 text-sm text-muted">
           

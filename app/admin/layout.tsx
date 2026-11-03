@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "پنل مدیریت",
-  description: "پنل مدیریت وب‌سایت پراپ بین",
+  description: "پنل مدیریت وب‌سایت پراپ‌بین",
   robots: {
     index: false,
     follow: false,

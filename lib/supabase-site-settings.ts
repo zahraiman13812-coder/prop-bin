@@ -81,7 +81,7 @@ export async function getSiteSettings<T extends object>(fallback: T): Promise<T>
 export async function saveSiteSettings(settings: SiteSettingsObject): Promise<void> {
   const supabase = getSupabaseAdmin();
   const rawSettings = settings as Record<string, unknown>;
-  const siteName = typeof rawSettings.name === "string" ? rawSettings.name : "پراپ بین";
+  const siteName = typeof rawSettings.name === "string" ? rawSettings.name : "پراپ‌بین";
   const siteDescription = typeof rawSettings.tagline === "string" ? rawSettings.tagline : "";
   const { error } = await supabase
     .from("site_settings")

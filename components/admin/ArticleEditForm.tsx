@@ -311,7 +311,7 @@ export default function ArticleEditForm({
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="mb-2 text-sm font-bold text-primary">
-              پنل مدیریت پراپین
+              پنل مدیریت پراپ‌بین
             </p>
 
             <h1 className="text-2xl font-extrabold sm:text-3xl">

@@ -120,7 +120,7 @@ export async function sendUserMessage(
     .upsert(
       {
         user_id: user.id,
-        name: user.name || "کاربر پراپ بین",
+        name: user.name || "کاربر پراپ‌بین",
         email: user.email,
         status: "open",
         updated_at: now,

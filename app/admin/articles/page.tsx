@@ -118,7 +118,7 @@ export default async function AdminArticlesPage({
           <div>
             <div className="mb-3 flex items-center gap-2 text-sm text-primary">
               <BookOpen size={18} />
-              <span>پنل مدیریت پراپین</span>
+              <span>پنل مدیریت پراپ‌بین</span>
             </div>
 
             <h1 className="text-2xl font-extrabold sm:text-3xl">

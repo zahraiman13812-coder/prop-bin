@@ -40,8 +40,8 @@ export default function LoginPage() {
       <section className="w-full max-w-[430px] rounded-[24px] border px-6 py-8 shadow-[0_24px_80px_#0003] sm:px-9" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-theme)", color: "var(--foreground)", transition: "background-color 200ms ease, border-color 200ms ease, color 200ms ease" }}>
         <div className="mb-7 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary"><ShieldCheck size={24}/></div>
-          <h1 className="mb-1 text-2xl font-bold text-foreground">{mode === "login" ? "خوش اومدی به پراپ بین" : "ساخت حساب کاربری"}</h1>
-          <p className="m-0 text-xs leading-7 text-muted">{mode === "login" ? "برای ادامه وارد حساب خود شوید" : "فقط چند قدم تا پیوستن به پراپ بین"}</p>
+          <h1 className="mb-1 text-2xl font-bold text-foreground">{mode === "login" ? "خوش اومدی به پراپ‌بین" : "ساخت حساب کاربری"}</h1>
+          <p className="m-0 text-xs leading-7 text-muted">{mode === "login" ? "برای ادامه وارد حساب خود شوید" : "فقط چند قدم تا پیوستن به پراپ‌بین"}</p>
         </div>
         <>
           <div className="mb-7 grid grid-cols-2 gap-1 rounded-xl border border-border-theme bg-background p-1">

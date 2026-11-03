@@ -46,12 +46,12 @@ export default async function ArticleImagesPage() {
       dir="rtl"
       className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto w-full min-w-0 max-w-6xl">
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="mb-2 text-sm font-bold text-primary">
-              پنل مدیریت پراپین
+              پنل مدیریت پراپ‌بین
             </p>
 
             <h1 className="text-2xl font-extrabold sm:text-3xl">
@@ -143,7 +143,7 @@ export default async function ArticleImagesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {report.images.map((image) => {
               const validStoragePath =
   /^covers\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$/i.test(
@@ -159,16 +159,16 @@ const canDelete =
                   className="overflow-hidden rounded-2xl border border-border-theme bg-surface"
                 >
                   {/* Image preview */}
-                  <div className="flex h-52 items-center justify-center bg-background p-3">
+                  <div className="flex aspect-video w-full items-center justify-center overflow-hidden bg-background p-3">
                     <img
                       src={image.url}
                       alt={`تصویر مقاله ${image.path}`}
                       loading="lazy"
-                      className="max-h-full max-w-full object-contain"
+                      className="block h-full w-full max-w-full object-contain"
                     />
                   </div>
 
-                  <div className="space-y-4 p-5">
+                  <div className="min-w-0 space-y-4 p-4 sm:p-5">
                     {/* Usage status */}
                     <div>
                       <span

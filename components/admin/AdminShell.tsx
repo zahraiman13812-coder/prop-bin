@@ -218,13 +218,13 @@ export default function AdminShell({
           >
             <img
               src="/pb-logo.png"
-              alt="لوگوی پراپ بین"
+              alt="لوگوی پراپ‌بین"
               className="h-11 w-11 object-contain"
             />
 
             <div>
               <strong className="block text-base font-extrabold">
-                پراپ بین
+                پراپ‌بین
               </strong>
 
               <span className="text-[11px] text-muted">
@@ -312,7 +312,7 @@ export default function AdminShell({
               </strong>
 
               <span className="text-xs text-muted">
-                مدیریت پراپ بین
+                مدیریت پراپ‌بین
               </span>
             </div>
           </div>
@@ -350,7 +350,7 @@ export default function AdminShell({
 
             <div className="min-w-0">
               <p className="admin-breadcrumb">
-                پراپ بین / مدیریت
+                پراپ‌بین / مدیریت
                 {demo ? " / پیش‌نمایش" : ""}
               </p>
 

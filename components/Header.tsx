@@ -33,7 +33,7 @@ type HeaderSettings = {
 };
 
 const defaults: HeaderSettings = {
-  name: "پراپ بین",
+  name: "پراپ‌بین",
   tagline: "مرجع بررسی پراپ",
   logoUrl: "/pb-logo.png",
   navigationJson: JSON.stringify(defaultNavigation),

@@ -105,13 +105,13 @@ export const initialContent: Content = {
   polls: [],
 
   settings: {
-    name: "پراپ بین",
+    name: "پراپ‌بین",
     tagline:
       "مرجع بررسی و مقایسه شرکت‌های پراپ",
 
     heroEyebrow:
       "راهنمای هوشمند دنیای پراپ",
-    heroTitle: "پراپ بین؛",
+    heroTitle: "پراپ‌بین؛",
     heroHighlight: "انتخاب بهتر",
 
     heroDescription:
@@ -134,7 +134,7 @@ export const initialContent: Content = {
       "تریدرها چه می‌گویند؟",
 
     footerDescription:
-      "پراپ بین، مرجع بررسی و مقایسه شرکت‌های پراپ.",
+      "پراپ‌بین، مرجع بررسی و مقایسه شرکت‌های پراپ.",
 
     contactEmail: "",
     instagram: "",

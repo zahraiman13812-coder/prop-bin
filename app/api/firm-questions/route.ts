@@ -15,7 +15,7 @@ export async function POST(req:NextRequest) {
   const db=getSupabaseAdmin();
   const {data:previous,error:checkError}=await db.from("firm_questions").select("id").eq("user_id",user.id).eq("firm_id",id).limit(20);
   if(checkError)throw checkError;
-  if((previous?.length??0)>=20)return NextResponse.json({error:"حداکثر تعداد پرسش‌های شما برای این شرکت ثبت شده است"},{status:429});
+  if((previous?.length??0)>=100)return NextResponse.json({error:"حداکثر تعداد پرسش‌های شما برای این شرکت ثبت شده است"},{status:429});
   const {error}=await db.from("firm_questions").insert({firm_id:id,user_id:user.id,display_name:user.name,question,approved:false});if(error)throw error;
   return NextResponse.json({ok:true,message:"پرسش ثبت شد و پس از تأیید مدیر نمایش داده می‌شود"},{status:201});
  }catch(err){console.error("firm questions create",err);return NextResponse.json({error:"ثبت پرسش ناموفق بود؛ جدول دیتابیس را بررسی کنید"},{status:500});}

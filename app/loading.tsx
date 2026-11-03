@@ -17,7 +17,7 @@ export default function Loading() {
       </div>
 
       <p className="text-sm font-semibold">
-        در حال بارگذاری پراپ بین...
+        در حال بارگذاری پراپ‌بین...
       </p>
 
       <p className="text-xs text-muted">

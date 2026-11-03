@@ -122,7 +122,7 @@ export default function ArticleImageUploader({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border-theme bg-surface p-5">
+    <div className="min-w-0 space-y-4 overflow-hidden rounded-2xl border border-border-theme bg-surface p-3 sm:p-5">
       <h3 className="font-bold text-foreground">
         تصویر شاخص مقاله
       </h3>
@@ -138,7 +138,7 @@ export default function ArticleImageUploader({
         onChange={selectFile}
         disabled={uploading}
         aria-label="انتخاب تصویر مقاله"
-        className="block w-full text-sm text-foreground"
+        className="block min-w-0 w-full max-w-full text-xs text-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-primary sm:text-sm"
       />
 
       {(preview || value) && (
@@ -146,7 +146,7 @@ export default function ArticleImageUploader({
           <img
             src={preview || value}
             alt="پیش‌نمایش تصویر شاخص مقاله"
-            className="max-h-72 w-full object-contain"
+            className="block aspect-video h-auto max-h-[65vh] w-full max-w-full object-contain"
           />
         </div>
       )}
@@ -161,7 +161,7 @@ export default function ArticleImageUploader({
         type="button"
         disabled={!file || uploading}
         onClick={uploadImage}
-        className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-11 w-full rounded-xl bg-primary px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {uploading
           ? "در حال آپلود..."
@@ -178,7 +178,7 @@ export default function ArticleImageUploader({
             readOnly
             dir="ltr"
             value={value}
-            className="w-full rounded-lg border border-border-theme bg-background p-3 text-xs"
+            className="min-w-0 w-full rounded-lg border border-border-theme bg-background p-3 text-xs"
           />
 
           <button

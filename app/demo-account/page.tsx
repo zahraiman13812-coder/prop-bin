@@ -50,7 +50,7 @@ export default function DemoAccountPage() {
 
             <div>
               <h1 className="text-2xl font-extrabold">
-                پنل کاربری پراپ بین
+                پنل کاربری پراپ‌بین
               </h1>
               <p className="mt-2 text-sm text-muted">
                 خوش آمدید، کاربر نمایشی
@@ -105,7 +105,7 @@ export default function DemoAccountPage() {
                 نام نمایشی
               </p>
               <p className="mt-2 font-semibold">
-                کاربر نمایشی پراپ بین
+                کاربر نمایشی پراپ‌بین
               </p>
             </div>
 

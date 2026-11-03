@@ -331,7 +331,7 @@ export default function AccountPage() {
 
             <div className="min-w-0">
               <h1 className="text-xl font-extrabold sm:text-2xl">
-                حساب کاربری پراپ بین
+                حساب کاربری پراپ‌بین
               </h1>
 
               <p

@@ -67,7 +67,7 @@ export async function createArticleDraft(
       body: optionalText(input.body),
       image: optionalText(input.image) || null,
       category: optionalText(input.category) || "عمومی",
-      author: optionalText(input.author) || "تیم پراپ بین",
+      author: optionalText(input.author) || "تیم پراپ‌بین",
       seo_title: optionalText(input.seoTitle) || null,
       seo_description:
         optionalText(input.seoDescription) || null,
@@ -179,7 +179,7 @@ export async function updateArticle(
     if (databaseField === "category") {
       changes.category = trimmed || "عمومی";
     } else if (databaseField === "author") {
-      changes.author = trimmed || "تیم پراپ بین";
+      changes.author = trimmed || "تیم پراپ‌بین";
     } else if (
       databaseField === "excerpt" ||
       databaseField === "body"

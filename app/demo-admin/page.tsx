@@ -54,7 +54,7 @@ export default async function DemoDashboard() {
     <div className="space-y-7">
       <div>
         <h2 className="text-2xl font-bold">
-          خوش اومدی به پنل پراپ بین
+          خوش اومدی به پنل پراپ‌بین
         </h2>
         <p className="mt-2 text-sm text-muted">
           نسخه نمایشی مدیریت — فقط مشاهده
@@ -121,7 +121,7 @@ export default async function DemoDashboard() {
             حالت پیش‌نمایش فعال است
           </h3>
           <p className="mt-3 text-sm leading-8 text-muted">
-            ساختار پنل مدیریت پراپ بین را مشاهده
+            ساختار پنل مدیریت پراپ‌بین را مشاهده
             می‌کنید. افزودن، ویرایش، حذف و
             ذخیره اطلاعات در این حالت غیرفعال است.
           </p>

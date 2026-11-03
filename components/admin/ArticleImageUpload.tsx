@@ -114,7 +114,7 @@ export default function ArticleImageUpload({
   return (
     <div
       dir="rtl"
-      className="space-y-4"
+      className="min-w-0 space-y-4"
     >
       <div>
         <p className="text-sm font-bold text-foreground">
@@ -131,7 +131,7 @@ export default function ArticleImageUpload({
           <img
             src={value}
             alt={alt}
-            className={previewClassName}
+            className={`block h-auto max-h-[65vh] max-w-full ${previewClassName}`}
           />
         </div>
       ) : (
@@ -163,14 +163,14 @@ export default function ArticleImageUpload({
         }
       />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           disabled={uploading}
           onClick={() =>
             inputRef.current?.click()
           }
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground disabled:opacity-50 sm:w-auto"
         >
           {uploading ? (
             <Loader2
@@ -191,7 +191,7 @@ export default function ArticleImageUpload({
             type="button"
             disabled={uploading}
             onClick={() => onChange("")}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-danger/30 px-4 text-sm text-danger"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-danger/30 px-4 text-sm text-danger sm:w-auto"
           >
             <Trash2 size={17} />
             حذف تصویر

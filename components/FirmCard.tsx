@@ -27,15 +27,12 @@ export default function FirmCard({ firm }: { firm: Firm }) {
           <div className="min-w-0"><small>سهم سود</small><b className="break-words !whitespace-normal">{firm.profit || "—"}</b></div>
           <div className="min-w-0"><small>هزینه شروع</small><b className="break-words !whitespace-normal">{firm.fee || "—"}</b></div>
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-2 min-[400px]:grid-cols-3 sm:grid-cols-1 xl:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-1 xl:grid-cols-2">
           <Link className="button button-primary !whitespace-normal text-center !px-2 !py-3" href={`/firms/${encodeURIComponent(firm.id)}`}>
             جزئیات شرکت
           </Link>
           <Link className="button button-quiet !whitespace-normal text-center !px-2 !py-3" href={`/discounts#${encodeURIComponent(firm.id)}`}>
             کد تخفیف
-          </Link>
-          <Link className="button button-outline !whitespace-normal text-center !px-2 !py-3" href="/cooperation">
-            همکاری با ما
           </Link>
         </div>
       </div>

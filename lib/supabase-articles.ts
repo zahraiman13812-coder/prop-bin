@@ -27,7 +27,7 @@ function mapArticle(row: ArticleRow): Article {
     body: row.body || "",
     image: row.image || "",
     category: row.category || "عمومی",
-    author: row.author || "تیم پراپ بین",
+    author: row.author || "تیم پراپ‌بین",
     seoTitle: row.seo_title || "",
     seoDescription: row.seo_description || "",
     keywords: row.keywords || "",

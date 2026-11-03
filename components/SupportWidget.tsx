@@ -240,7 +240,7 @@ export default function SupportWidget() {
           dir="rtl"
           role="dialog"
           aria-modal="true"
-          aria-label="پشتیبانی پراپ بین"
+          aria-label="پشتیبانی پراپ‌بین"
           className="fixed bottom-24 right-5 z-[95] flex max-h-[min(640px,calc(100dvh-7rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border-theme bg-surface text-foreground shadow-2xl"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border-theme bg-surface-secondary px-4 py-3">
@@ -251,7 +251,7 @@ export default function SupportWidget() {
 
               <div>
                 <p className="text-sm font-bold">
-                  پشتیبانی پراپ بین
+                  پشتیبانی پراپ‌بین
                 </p>
                 <p className="mt-0.5 text-[10px] text-muted">
                   پاسخگوی سؤالات شما هستیم

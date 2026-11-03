@@ -73,7 +73,7 @@ const COLORS = [
 
 export const defaultRaffle: Raffle = {
   enabled: true,
-  title: "گردونه شانس پراپ بین",
+  title: "گردونه شانس پراپ‌بین",
   description:
     "هر ماه یک شانس برای دریافت هدیه پراپ و تخفیف ویژه داشته باش. برای چرخاندن گردونه ابتدا وارد حساب کاربری شو.",
   terms:
@@ -96,7 +96,7 @@ export const defaultRaffle: Raffle = {
     {
       id: "prize-consult",
       label: "مشاوره انتخاب پراپ",
-      description: "یک جلسه مشاوره کوتاه با تیم پراپ بین",
+      description: "یک جلسه مشاوره کوتاه با تیم پراپ‌بین",
       color: "#0d9488",
       weight: 1,
     },
@@ -116,8 +116,8 @@ export const defaultRaffle: Raffle = {
     },
     {
       id: "prize-gift",
-      label: "هدیه ویژه پراپ بین",
-      description: "یک هدیه منتخب از طرف تیم پراپ بین",
+      label: "هدیه ویژه پراپ‌بین",
+      description: "یک هدیه منتخب از طرف تیم پراپ‌بین",
       color: "#18d9ff",
       weight: 1,
     },
@@ -285,7 +285,7 @@ export function normalizeRaffle(value: unknown): Raffle {
 
 export function maskName(name: string) {
   const clean = name.trim();
-  if (!clean) return "کاربر پراپ بین";
+  if (!clean) return "کاربر پراپ‌بین";
 
   const parts = clean.split(/\s+/);
   if (parts.length === 1) {

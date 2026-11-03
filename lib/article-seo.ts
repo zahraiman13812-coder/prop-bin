@@ -11,8 +11,8 @@ import {
   getPublishedArticleCanonical,
 } from "@/lib/supabase-articles";
 
-const SITE_NAME = "پراپ بین";
-const DEFAULT_AUTHOR = "تیم پراپ بین";
+const SITE_NAME = "پراپ‌بین";
+const DEFAULT_AUTHOR = "تیم پراپ‌بین";
 
 function siteOrigin() {
   return (

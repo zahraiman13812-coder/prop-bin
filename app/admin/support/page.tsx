@@ -276,7 +276,7 @@ export default function AdminSupportPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-sm font-bold">
-                      {item.name || "کاربر پراپ بین"}
+                      {item.name || "کاربر پراپ‌بین"}
                     </span>
 
                     {unread > 0 && (
@@ -307,7 +307,7 @@ export default function AdminSupportPage() {
                 <div className="flex items-center justify-between gap-3 border-b border-border-theme bg-surface-secondary px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">
-                      {thread.name || "کاربر پراپ بین"}
+                      {thread.name || "کاربر پراپ‌بین"}
                     </p>
                     <p
                       dir="ltr"

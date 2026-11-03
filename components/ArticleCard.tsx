@@ -17,7 +17,7 @@ export default function ArticleCard({
       href={`/articles/${article.slug}`}
       className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border-theme bg-surface transition-all hover:border-primary/40 hover:shadow-lg"
     >
-      <div className="relative h-48 overflow-hidden bg-surface-secondary sm:h-52">
+      <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-surface-secondary sm:aspect-[16/9]">
         {hasImage ? (
           <Image
             src={image}
@@ -39,17 +39,17 @@ export default function ArticleCard({
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
         <div className="flex flex-wrap justify-between gap-2 text-xs text-muted">
           <span>{article.date}</span>
           <span>{article.read} مطالعه</span>
         </div>
 
-        <h3 className="mt-4 text-base font-extrabold leading-8 text-foreground group-hover:text-primary">
+        <h3 className="mt-4 break-words text-base font-extrabold leading-8 text-foreground group-hover:text-primary">
           {article.title}
         </h3>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-7 text-muted">
+        <p className="mt-3 line-clamp-3 break-words text-sm leading-7 text-muted">
           {article.excerpt}
         </p>
 

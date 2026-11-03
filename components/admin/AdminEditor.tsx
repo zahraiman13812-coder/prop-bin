@@ -353,7 +353,7 @@ export default function AdminEditor({
           </h2>
 
           <p className="mt-2 text-sm text-muted">
-            مدیریت اطلاعات سایت پراپ بین
+            مدیریت اطلاعات سایت پراپ‌بین
           </p>
         </div>
 

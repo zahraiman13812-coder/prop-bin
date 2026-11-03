@@ -41,10 +41,6 @@ export default async function ArticlePage({
   getPublishedArticle(slug),
 ]);
 
-if (!article) {
-  notFound();
-}
-
   if (!article) {
     notFound();
   }
@@ -60,7 +56,7 @@ if (!article) {
   const breadcrumbLd = getBreadcrumbJsonLd(article);
 
   return (
-    <div className="min-h-screen bg-background py-8 text-foreground sm:py-12">
+    <div className="min-h-screen min-w-0 overflow-x-clip bg-background py-6 text-foreground sm:py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -74,7 +70,7 @@ if (!article) {
         }}
       />
 
-      <article className="mx-auto max-w-[900px] px-4 sm:px-6">
+      <article className="mx-auto w-full min-w-0 max-w-[900px] px-3 sm:px-6">
         <nav
           aria-label="مسیر صفحه"
           className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted"
@@ -93,12 +89,12 @@ if (!article) {
             مقالات
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="truncate text-foreground">
+          <span className="min-w-0 max-w-[45vw] truncate text-foreground sm:max-w-[520px]">
             {article.title}
           </span>
         </nav>
 
-        <div className="relative mt-2 h-[230px] overflow-hidden rounded-2xl bg-surface-secondary sm:h-[380px]">
+        <div className="relative mt-2 aspect-[16/10] w-full overflow-hidden rounded-2xl bg-surface-secondary sm:aspect-[16/9]">
           {hasImage ? (
             <Image
               src={image}
@@ -117,12 +113,12 @@ if (!article) {
           )}
         </div>
 
-        <header className="mt-6 rounded-2xl border border-border-theme bg-surface p-5 sm:p-9">
+        <header className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-border-theme bg-surface p-4 sm:mt-6 sm:p-9">
           <span className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
             {article.category}
           </span>
 
-          <h1 className="mt-5 text-2xl font-extrabold leading-relaxed sm:text-4xl">
+          <h1 className="mt-5 break-words text-xl font-extrabold leading-relaxed sm:text-3xl lg:text-4xl">
             {article.title}
           </h1>
 
@@ -141,11 +137,11 @@ if (!article) {
 
             <span>
               نویسنده:{" "}
-              {article.author?.trim() || "تیم پراپ بین"}
+              {article.author?.trim() || "تیم پراپ‌بین"}
             </span>
           </div>
 
-          <p className="mt-7 border-b border-border-theme pb-6 text-base leading-9 text-muted">
+          <p className="mt-7 break-words border-b border-border-theme pb-6 text-sm leading-8 text-muted sm:text-base sm:leading-9">
             {article.excerpt}
           </p>
 
@@ -160,7 +156,7 @@ if (!article) {
               <Link href="/lottery?join=1" className="inline-flex rounded-xl bg-primary px-6 py-3 font-bold text-white">شرکت در قرعه‌کشی ←</Link>
             </section>
           )}
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-secondary p-5 text-xs leading-8 text-muted">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-secondary p-4 text-xs leading-8 text-muted sm:p-5">
             <span>
               این مقاله صرفاً برای اطلاع‌رسانی و
               آموزش تهیه شده است.

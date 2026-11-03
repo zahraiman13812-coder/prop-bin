@@ -20,7 +20,7 @@ export default function DemoPage() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-9 text-center">
           <p className="text-sm font-bold text-primary">
-            نسخه نمایشی پراپ بین PB
+            نسخه نمایشی پراپ‌بین PB
           </p>
           <h1 className="mt-3 text-3xl font-extrabold">
             انتخاب پنل

@@ -40,7 +40,7 @@ export default async function AdminFirmsPage() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="mb-2 text-sm font-bold text-primary">
-              پنل مدیریت پراپین
+              پنل مدیریت پراپ‌بین
             </p>
 
             <h1 className="flex items-center gap-3 text-2xl font-extrabold sm:text-3xl">

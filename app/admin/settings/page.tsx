@@ -335,7 +335,7 @@ export default function AdminSettingsPage() {
     >
       <div>
         <h1 className="text-2xl font-extrabold sm:text-3xl">
-          تنظیمات سایت پراپ بین
+          تنظیمات سایت پراپ‌بین
         </h1>
 
         <p className="mt-3 text-sm leading-8 text-muted">

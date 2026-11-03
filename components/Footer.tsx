@@ -19,7 +19,7 @@ type FooterSettings = {
 };
 
 const initial: FooterSettings = {
-  name: "پراپ بین",
+  name: "پراپ‌بین",
   logoUrl: "/pb-logo.png",
   footerDescription:
     "مرجع بررسی و مقایسه شرکت‌های پراپ.",

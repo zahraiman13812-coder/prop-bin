@@ -21,9 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
     console.error("Failed to load metadata site settings:", error);
   }
 
-  const siteName = settings.name.trim() || "پراپ بین";
+  const siteName = settings.name.trim() || "پراپ‌بین";
   const description = settings.tagline.trim() ||
-    "پراپ بین، مرجع بررسی و مقایسه شرکت‌های پراپ، کدهای تخفیف، نظرسنجی کاربران و مقالات آموزشی ترید.";
+    "پراپ‌بین، مرجع بررسی و مقایسه شرکت‌های پراپ، کدهای تخفیف، نظرسنجی کاربران و مقالات آموزشی ترید.";
   const logo = settings.logoUrl || "/pb-logo.png";
 
   return {

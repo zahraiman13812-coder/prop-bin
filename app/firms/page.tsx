@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "بررسی پراپ‌ها",
   description:
-    "بررسی و مقایسه شرکت‌های پراپ در پراپین؛ مشاهده امتیاز، سرمایه، سهم سود، هزینه چالش و قوانین شرکت‌ها.",
+    "بررسی و مقایسه شرکت‌های پراپ در پراپ‌بین؛ مشاهده امتیاز، سرمایه، سهم سود، هزینه چالش و قوانین شرکت‌ها.",
 };
 
 export default async function FirmsPage() {
