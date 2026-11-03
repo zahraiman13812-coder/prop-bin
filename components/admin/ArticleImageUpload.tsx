@@ -28,7 +28,7 @@ export default function ArticleImageUpload({
   title = "تصویر شاخص مقاله",
   description = "JPG، PNG یا WebP — حداکثر ۲ مگابایت",
   alt = "پیش‌نمایش تصویر",
-  previewClassName = "aspect-video w-full object-cover",
+  previewClassName = "aspect-video w-full object-contain",
   emptyClassName = "aspect-video",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);

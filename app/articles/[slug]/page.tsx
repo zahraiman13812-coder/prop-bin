@@ -89,12 +89,12 @@ export default async function ArticlePage({
             مقالات
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="min-w-0 max-w-[45vw] truncate text-foreground sm:max-w-[520px]">
+          <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] text-foreground">
             {article.title}
           </span>
         </nav>
 
-        <div className="relative mt-2 aspect-[16/10] w-full overflow-hidden rounded-2xl bg-surface-secondary sm:aspect-[16/9]">
+        <div className="relative mt-2 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border-theme bg-surface-secondary">
           {hasImage ? (
             <Image
               src={image}
@@ -102,7 +102,7 @@ export default async function ArticlePage({
               fill
               priority
               sizes="(max-width: 900px) 100vw, 900px"
-              className="object-cover"
+              className="object-contain p-2 sm:p-4"
             />
           ) : (
             <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-surface-secondary">
@@ -118,7 +118,7 @@ export default async function ArticlePage({
             {article.category}
           </span>
 
-          <h1 className="mt-5 break-words text-xl font-extrabold leading-relaxed sm:text-3xl lg:text-4xl">
+          <h1 className="mt-5 break-words [overflow-wrap:anywhere] text-xl font-extrabold leading-relaxed sm:text-3xl lg:text-4xl">
             {article.title}
           </h1>
 
@@ -141,7 +141,7 @@ export default async function ArticlePage({
             </span>
           </div>
 
-          <p className="mt-7 break-words border-b border-border-theme pb-6 text-sm leading-8 text-muted sm:text-base sm:leading-9">
+          <p className="mt-7 whitespace-pre-line break-words [overflow-wrap:anywhere] border-b border-border-theme pb-6 text-sm leading-8 text-muted sm:text-base sm:leading-9">
             {article.excerpt}
           </p>
 
