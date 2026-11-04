@@ -53,10 +53,7 @@ export default function LoginPage() {
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "کد معتبر نیست.");
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      const destination = next?.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/account";
-      router.replace(destination);
+      router.replace("/account");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "بررسی کد ناموفق بود.");
@@ -67,8 +64,8 @@ export default function LoginPage() {
     <section className="w-full max-w-[440px] min-w-0 rounded-3xl border border-border-theme bg-surface p-5 text-foreground shadow-xl sm:p-8">
       <div className="mb-7 text-center">
         <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary"><ShieldCheck size={24}/></div>
-        <h1 className="text-2xl font-bold">{step === "code" ? "تأیید ایمیل" : mode === "login" ? "ورود به پراپ‌بین" : "ثبت‌نام در پراپ‌بین"}</h1>
-        <p className="mt-2 text-sm leading-7 text-muted">{step === "code" ? "کد شش‌رقمی ارسال‌شده را وارد کنید." : "بدون نیاز به رمز عبور ثابت، با کد یک‌بارمصرف ایمیل وارد شوید."}</p>
+        <h1 className="text-2xl font-bold">{step === "code" ? "وارد کردن کد ایمیل" : mode === "login" ? "ورود به پراپ‌بین" : "ثبت‌نام در پراپ‌بین"}</h1>
+        <p className="mt-2 text-sm leading-7 text-muted">{step === "code" ? "رمز ۶ رقمی ارسال‌شده به ایمیل را وارد کنید و دکمه ورود را بزنید." : "ابتدا اطلاعات را وارد کنید و دکمه ارسال کد را بزنید؛ سپس در مرحله بعد رمز ایمیل را وارد کنید."}</p>
       </div>
       {step === "email" ? <>
         <div className="mb-6 grid grid-cols-2 gap-1 rounded-xl border border-border-theme bg-background p-1">
@@ -84,7 +81,7 @@ export default function LoginPage() {
             <input className={inputClass} dir="ltr" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={254} required placeholder="name@example.com" />
           </label>
           {error && <p role="alert" className="break-words rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
-          <button type="submit" disabled={busy} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy ? "در حال ارسال..." : "ارسال کد ورود"}<ArrowLeft size={17}/></button>
+          <button type="submit" disabled={busy} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy ? "در حال ارسال..." : "ارسال کد"}<ArrowLeft size={17}/></button>
         </form>
       </> : <>
         <div className="mb-4 flex items-center justify-center gap-2 break-all text-center text-sm text-muted" dir="ltr"><MailCheck size={18}/>{email}</div>
@@ -96,7 +93,7 @@ export default function LoginPage() {
           </label>
           {info && <p role="status" className="break-words rounded-lg border border-primary/25 bg-primary/10 p-3 text-sm leading-7 text-foreground">{info}</p>}
           {error && <p role="alert" className="break-words rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
-          <button type="submit" disabled={busy || code.length !== 6} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy ? "در حال تأیید..." : "تأیید کد و ورود"}<ArrowLeft size={17}/></button>
+          <button type="submit" disabled={busy || code.length !== 6} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy ? "در حال تأیید..." : "ورود"}<ArrowLeft size={17}/></button>
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
             <button type="button" className="inline-flex items-center gap-1 text-primary hover:underline" onClick={() => { setStep("email"); setError(""); setInfo(""); }}><ArrowRight size={15}/> تغییر ایمیل</button>
             <button type="button" disabled={busy} className="text-primary hover:underline disabled:opacity-50" onClick={() => sendCode()}>ارسال مجدد کد</button>
