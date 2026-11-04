@@ -134,31 +134,47 @@ function generateOtp(): string {
 }
 
 async function sendCodeEmail(to: string, code: string): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM;
-  if (!key || !from) {
-    throw new Error("RESEND_API_KEY یا MAIL_FROM در سرور تنظیم نشده است.");
+  const subject = "کد یک‌بارمصرف ورود به پراپ‌بین";
+  const text = `کد ورود شما: ${code}\nاعتبار: ۱۰ دقیقه\nاگر این درخواست را ثبت نکرده‌اید، این پیام را نادیده بگیرید.`;
+
+  // For the temporary vercel.app website, send through a Gmail App Password.
+  // After connecting a domain, RESEND_API_KEY + MAIL_FROM can replace Gmail.
+  if (process.env.RESEND_API_KEY && process.env.MAIL_FROM) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: process.env.MAIL_FROM, to: [to], subject, text }),
+      signal: AbortSignal.timeout(12000),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      console.error("OTP email provider failure, status:", response.status);
+      throw new Error("ارسال ایمیل ناموفق بود. تنظیمات ایمیل را بررسی کنید.");
+    }
+    return;
   }
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: "کد ورود به پراپ‌بین",
-      text: `کد تأیید شما: ${code}\nاین کد ۱۰ دقیقه اعتبار دارد. اگر درخواست نداده‌اید، این ایمیل را نادیده بگیرید.`,
-    }),
-    signal: AbortSignal.timeout(12_000),
-    cache: "no-store",
+
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
+  if (!gmailUser || !gmailAppPassword) {
+    throw new Error("تنظیمات ایمیل در سرور کامل نیست (GMAIL_USER / GMAIL_APP_PASSWORD).");
+  }
+
+  // Dependency: npm install nodemailer && npm install -D @types/nodemailer
+  const { default: nodemailer } = await import("nodemailer");
+  const smtp = nodemailer.createTransport({
+    host: "smtp.gmail.com", port: 465, secure: true,
+    auth: { user: gmailUser, pass: gmailAppPassword },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 12000,
   });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { name?: string; message?: string } | null;
-    console.error("Resend rejected OTP delivery:", response.status, body?.name ?? "unknown");
-    throw new Error("سرویس ایمیل ارسال کد را نپذیرفت.");
-  }
+  await smtp.sendMail({
+    from: `"پراپ‌بین" <${gmailUser}>`, to, subject, text,
+  });
 }
 
 export async function issueLoginCode(email: string, mode: AuthMode = "login", name = "") {
@@ -173,6 +189,15 @@ export async function issueLoginCode(email: string, mode: AuthMode = "login", na
   const { data: user, error: userError } = await db.from("site_users")
     .select("id").eq("email", normalized).maybeSingle();
   if (userError) dbFail(userError);
+
+  // A registration never silently overwrites an existing account.
+  // A login never creates a new account without the user's name and consent.
+  if (mode === "register" && user) {
+    throw new Error("این ایمیل قبلاً ثبت شده است. از بخش ورود استفاده کنید.");
+  }
+  if (mode === "login" && !user) {
+    throw new Error("این ایمیل هنوز ثبت نشده است. ابتدا ثبت‌نام کنید.");
+  }
 
   const localTest = isLocalDemo(normalized);
   const code = localTest ? LOCAL_DEMO_CODE : generateOtp();
@@ -198,7 +223,7 @@ export async function issueLoginCode(email: string, mode: AuthMode = "login", na
   }
 }
 
-export async function verifyLoginCode(email: string, code: string): Promise<User | null> {
+export async function verifyLoginCode(email: string, code: string): Promise<{ user: User; version: number } | null> {
   const normalized = normalizeEmail(email);
   if (!validEmail(normalized) || !/^\d{6}$/.test(code)) return null;
   const db = getSupabaseAdmin();
@@ -208,7 +233,12 @@ export async function verifyLoginCode(email: string, code: string): Promise<User
   });
   if (error) dbFail(error);
   const row = Array.isArray(data) ? data[0] : null;
-  return row ? asUser(row as UserRow) : null;
+  if (!row) return null;
+  const user = asUser(row as UserRow);
+  const { data: current, error: currentError } = await db.from("site_users")
+    .select("session_version").eq("id", user.id).maybeSingle();
+  if (currentError || !current) dbFail(currentError || new Error("User disappeared"));
+  return { user, version: Number(current.session_version) || 1 };
 }
 
 function createSession(
