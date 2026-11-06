@@ -158,9 +158,15 @@ function mergeEntries(
     byUserPeriod.add(key);
   }
 
-  return [...byCode.values()].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt)
+  return [...byCode.values()].sort((a, b) => {
+  const dateA = new Date(a.createdAt).getTime();
+  const dateB = new Date(b.createdAt).getTime();
+
+  return (
+    (Number.isFinite(dateB) ? dateB : 0) -
+    (Number.isFinite(dateA) ? dateA : 0)
   );
+});
 }
 
 async function getSavedWinners(
