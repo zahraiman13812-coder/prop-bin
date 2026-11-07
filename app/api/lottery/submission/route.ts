@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isDemoUser } from "@/lib/user-auth";
 import { getContent } from "@/lib/content";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
 import { validOrigin } from "@/lib/guard";
 
 export const runtime = "nodejs";
@@ -65,13 +65,6 @@ export async function POST(request: NextRequest) {
       return json({ error: "حساب نمایشی اجازه ارسال درخواست ندارد." }, 403);
     }
 
-    const content = await getContent();
-    const lottery = content.articleLottery;
-
-    if (!lottery.enabled || !lottery.period?.trim()) {
-      return json({ error: "قرعه‌کشی فعال نیست." }, 403);
-    }
-
     const body = await request.json();
 
     if (!Array.isArray(body.images) ||
@@ -81,74 +74,64 @@ export async function POST(request: NextRequest) {
     }
 
     let totalSize = 0;
-
     const images = body.images.map((image: unknown) => {
-      if (typeof image !== "string") {
-        throw new Error("فرمت تصویر نامعتبر است.");
-      }
-
+      if (typeof image !== "string") throw new Error("فرمت تصویر نامعتبر است.");
       const match = image.match(
         /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/
       );
-
       if (!match) throw new Error("فقط JPG، PNG و WEBP مجاز هستند.");
-
       const buffer = Buffer.from(match[2], "base64");
-
       if (!buffer.length || buffer.length > MAX_IMAGE_SIZE) {
         throw new Error("حجم هر تصویر باید حداکثر ۱ مگابایت باشد.");
       }
-
       totalSize += buffer.length;
-
       if (totalSize > MAX_TOTAL_SIZE) {
         throw new Error("حجم مجموع تصاویر بیش از حد مجاز است.");
       }
-
       return image;
     });
 
-    const db = getSupabaseAdmin();
+    const result = await withDatabaseTransaction(async (client) => {
+      // Lock the settings row so a concurrent period deletion cannot leave orphan submissions.
+      const settingsResult = await client.query(
+        "SELECT enabled, period FROM public.article_lottery_settings WHERE id = 1 FOR UPDATE"
+      );
+      const lottery = settingsResult.rows[0] as
+        | { enabled: boolean; period: string }
+        | undefined;
 
-    const { data: existing, error: lookupError } = await db
-      .from("article_lottery_submissions")
-      .select("id,status")
-      .eq("user_id", user.id)
-      .eq("period", lottery.period)
-      .maybeSingle();
-
-    if (lookupError) throw lookupError;
-
-    if (existing) {
-      return json({
-        error: "برای این دوره قبلاً درخواست ثبت کرده‌اید.",
-        submission: existing,
-      }, 409);
-    }
-
-    const { data, error } = await db
-      .from("article_lottery_submissions")
-      .insert({
-        user_id: user.id,
-        name: user.name,
-        email: user.email,
-        period: lottery.period,
-        images: JSON.stringify(images),
-        status: "pending",
-      })
-      .select("id,status,created_at")
-      .single();
-
-    if (error) {
-      if (error.code === "23505") {
-        return json({ error: "درخواست شما قبلاً ثبت شده است." }, 409);
+      if (!lottery?.enabled || !lottery.period?.trim()) {
+        return { kind: "disabled" as const };
       }
-      throw error;
+
+      const inserted = await client.query(
+        `INSERT INTO public.article_lottery_submissions
+           (user_id, name, email, period, images, status)
+         VALUES ($1, $2, $3, $4, $5::jsonb, 'pending')
+         RETURNING id, status, created_at`,
+        [
+          user.id,
+          user.name?.trim() || user.email.split("@")[0] || "کاربر پراپ‌بین",
+          user.email,
+          lottery.period,
+          JSON.stringify(images),
+        ]
+      );
+
+      return { kind: "created" as const, submission: inserted.rows[0], period: lottery.period };
+    });
+
+    if (result.kind === "disabled") {
+      return json({ error: "قرعه‌کشی فعال نیست یا دوره‌ای برای آن تعریف نشده است." }, 403);
     }
 
-    return json({ ok: true, submission: data });
+    return json({ ok: true, submission: result.submission, period: result.period });
+
   } catch (error) {
     console.error("Lottery submission POST:", error);
+    if (error && typeof error === "object" && "code" in error && error.code === "23505") {
+      return json({ error: "برای این دوره قبلاً درخواست ثبت کرده‌اید." }, 409);
+    }
     return json({
       error: databaseMessage(error, error instanceof Error
         ? error.message

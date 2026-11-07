@@ -20,7 +20,10 @@ const requiredColumns = {
   prop_firms: ["id", "name", "discount_intro", "purchase_method", "is_active", "sort_order"],
   firm_discounts: ["id", "firm_id", "code", "amount", "description", "sort_order"],
   articles: ["id", "title", "slug", "body", "image", "status", "published_at"],
-  article_lottery_submissions: ["id", "user_id", "name", "email", "period", "images", "status", "issued_code", "admin_note"],
+  article_lottery_settings: ["id", "enabled", "title", "description", "article_slug", "period", "updated_at"],
+  article_lottery_entries: ["id", "user_id", "name", "email", "code", "period", "created_at"],
+  article_lottery_winners: ["period", "entry_id", "selected_at"],
+  article_lottery_submissions: ["id", "user_id", "name", "email", "period", "images", "status", "issued_code", "admin_note", "created_at", "reviewed_at"],
 };
 
 const client = new pg.Client({
@@ -54,6 +57,24 @@ try {
     }
   }
 
+  const lotteryUniqueIndexes = [
+    ["article_lottery_entries", ["code"]],
+    ["article_lottery_entries", ["user_id", "period"]],
+    ["article_lottery_submissions", ["user_id", "period"]],
+  ];
+  for (const [table, columns] of lotteryUniqueIndexes) {
+    const result = await client.query(
+      `SELECT indexdef FROM pg_indexes
+       WHERE schemaname='public' AND tablename=$1 AND indexdef ILIKE '%UNIQUE%'`,
+      [table],
+    );
+    const found = result.rows.some((row) =>
+      columns.every((column) => row.indexdef.includes(column))
+    );
+    if (found) console.log("OK unique index", `${table}(${columns.join(",")})`);
+    else { console.error("MISSING unique index", `${table}(${columns.join(",")})`); failed = true; }
+  }
+
   for (const fn of ["reserve_site_login_code", "verify_site_login_code"]) {
     const result = await client.query(
       "SELECT to_regprocedure($1) AS found",
@@ -83,6 +104,21 @@ try {
     const result = await client.query("SELECT to_regclass($1) AS found", [`public.${table}`]);
     if (!result.rows[0].found) console.log("OK excluded wheel table", table);
     else { console.error("UNWANTED wheel table exists", table); failed = true; }
+  }
+
+  const lotteryConsistency = await client.query(
+    `SELECT COUNT(*)::int AS broken
+     FROM public.article_lottery_submissions s
+     LEFT JOIN public.article_lottery_entries e
+       ON e.user_id = s.user_id AND e.period = s.period
+     WHERE s.status = 'issued'
+       AND (e.id IS NULL OR e.code <> s.issued_code)`
+  );
+  if (lotteryConsistency.rows[0].broken === 0) {
+    console.log("OK issued article-lottery submissions match participant entries");
+  } else {
+    console.error("INCONSISTENT article-lottery issued submissions:", lotteryConsistency.rows[0].broken);
+    failed = true;
   }
 
   const history = await client.query(

@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/auth";
 import { getContent } from "@/lib/content";
-import { saveArticleLotterySettings, getArticleLotterySettings } from "@/lib/supabase-lottery";
+import { saveArticleLotterySettings } from "@/lib/supabase-lottery";
 import { validOrigin } from "@/lib/guard";
 import { getPublishedArticles } from "@/lib/supabase-articles";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,7 +95,7 @@ async function getSavedEntries(): Promise<LotteryEntry[]> {
       );
 
       throw new Error(
-        "دریافت شرکت‌کنندگان از Supabase ناموفق بود."
+        "دریافت شرکت‌کنندگان از PostgreSQL ناموفق بود."
       );
     }
 
@@ -105,7 +105,7 @@ async function getSavedEntries(): Promise<LotteryEntry[]> {
       ...rows.map((row) => ({
         id: row.id,
         userId: row.user_id,
-        name: row.name,
+        name: row.name?.trim() || row.email?.split("@")[0] || "کاربر پراپ‌بین",
         email: row.email,
         code: row.code,
         period: row.period,
@@ -225,21 +225,29 @@ export async function GET() {
       savedEntries
     );
     const winners = await getSavedWinners(entries);
-    const { data: submissionRows, error: submissionsError } = await getSupabaseAdmin()
-      .from("article_lottery_submissions")
-      .select("period")
-      .limit(5000);
-    if (submissionsError) throw submissionsError;
+    const roundCounts = await withDatabaseTransaction(async (client) => {
+      const [submissionCounts, entryCounts] = await Promise.all([
+        client.query(
+          "SELECT period, COUNT(*)::int AS total FROM public.article_lottery_submissions GROUP BY period"
+        ),
+        client.query(
+          "SELECT period, COUNT(*)::int AS total FROM public.article_lottery_entries GROUP BY period"
+        ),
+      ]);
+      return { submissionCounts: submissionCounts.rows, entryCounts: entryCounts.rows };
+    });
 
     const periods = new Set<string>();
     entries.forEach((entry) => periods.add(entry.period));
     winners.forEach((winner) => periods.add(winner.period));
-    (submissionRows ?? []).forEach((row: { period: string }) => periods.add(row.period));
-    if (content.articleLottery.period) periods.add(content.articleLottery.period);
+    roundCounts.submissionCounts.forEach((row: { period: string }) => periods.add(row.period));
+    if (content.articleLottery.enabled && content.articleLottery.period?.trim()) {
+      periods.add(content.articleLottery.period);
+    }
     const rounds = [...periods].map((period) => ({
       period,
-      entries: entries.filter((entry) => entry.period === period).length,
-      submissions: (submissionRows ?? []).filter((row: { period: string }) => row.period === period).length,
+      entries: Number(roundCounts.entryCounts.find((row: { period: string }) => row.period === period)?.total ?? 0),
+      submissions: Number(roundCounts.submissionCounts.find((row: { period: string }) => row.period === period)?.total ?? 0),
       winner: winners.find((winner) => winner.period === period)?.name ?? null,
       active: content.articleLottery.period === period && content.articleLottery.enabled,
     })).sort((a, b) => a.period.localeCompare(b.period, "fa"));
@@ -352,33 +360,47 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const db = getSupabaseAdmin();
-    const settings = await getArticleLotterySettings();
+    const deleted = await withDatabaseTransaction(async (client) => {
+      const settingsResult = await client.query(
+        "SELECT enabled, period FROM public.article_lottery_settings WHERE id = 1 FOR UPDATE"
+      );
+      const settings = settingsResult.rows[0] as
+        | { enabled: boolean; period: string }
+        | undefined;
 
-    // Disable the current round first so nobody can submit while it is being removed.
-    if (settings.period === period && settings.enabled) {
-      await saveArticleLotterySettings({ ...settings, enabled: false });
-    }
+      const winners = await client.query(
+        "DELETE FROM public.article_lottery_winners WHERE period = $1",
+        [period]
+      );
+      const submissions = await client.query(
+        "DELETE FROM public.article_lottery_submissions WHERE period = $1",
+        [period]
+      );
+      const entries = await client.query(
+        "DELETE FROM public.article_lottery_entries WHERE period = $1",
+        [period]
+      );
 
-    // Delete dependent records first. Winners reference entries.
-    const winners = await db.from("article_lottery_winners").delete().eq("period", period);
-    if (winners.error) throw winners.error;
+      if (settings?.period === period) {
+        await client.query(
+          `UPDATE public.article_lottery_settings
+           SET enabled = false, period = 'دوره جدید', article_slug = '', updated_at = now()
+           WHERE id = 1`
+        );
+      }
 
-    const submissions = await db.from("article_lottery_submissions").delete().eq("period", period);
-    if (submissions.error) throw submissions.error;
-
-    const entries = await db.from("article_lottery_entries").delete().eq("period", period);
-    if (entries.error) throw entries.error;
+      return {
+        winners: winners.rowCount ?? 0,
+        submissions: submissions.rowCount ?? 0,
+        entries: entries.rowCount ?? 0,
+      };
+    });
 
     return json({
       ok: true,
       period,
-      deleted: {
-        winners: Array.isArray(winners.data) ? winners.data.length : 0,
-        submissions: Array.isArray(submissions.data) ? submissions.data.length : 0,
-        entries: Array.isArray(entries.data) ? entries.data.length : 0,
-      },
-      message: `دوره «${period}» و اطلاعات وابسته آن حذف شد.`,
+      deleted,
+      message: `دوره «${period}» و تمام اطلاعات وابسته آن به‌صورت کامل حذف شد.`,
     });
   } catch (error) {
     console.error("Admin lottery DELETE failed:", error);

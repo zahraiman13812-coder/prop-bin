@@ -1,5 +1,5 @@
 import 'server-only';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { mkdir, writeFile, unlink, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -7,7 +7,7 @@ const globalDb = globalThis as typeof globalThis & { __propinPool?: Pool };
 // Reuse one pool per process; hot reload does not exhaust database connections.
 const pool = globalDb.__propinPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 12 });
 globalDb.__propinPool = pool;
-const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads','wheel_draws','wheel_prizes','wheel_settings','wheel_spins']);
+const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads']);
 const ident = (v: string) => { if (!/^[a-z][a-z0-9_]*$/.test(v)) throw Error('Invalid SQL identifier'); return '"'+v+'"'; };
 const safeTable = (name: string) => { if (!tables.has(name)) throw Error('Unknown table: '+name); return ident(name); };
 const storageRoot = path.join(process.cwd(), '.uploads');
@@ -109,8 +109,30 @@ export function getSupabaseAdmin() {
     from(name:string){return new Query(name);},
     storage:{from:storageBucket},
     async rpc(name:string,args:Record<string,any>={}) {
-      if(!['reserve_site_login_code','verify_site_login_code','spin_wheel_for_user'].includes(name))return {data:null,error:{message:'Unknown function',code:'42883'}};
+      if(!['reserve_site_login_code','verify_site_login_code'].includes(name))return {data:null,error:{message:'Unknown function',code:'42883'}};
       try {const keys=Object.keys(args);const values=keys.map(k=>args[k]);const sql='SELECT * FROM '+ident(name)+'('+keys.map((k,i)=>ident(k)+' => $'+(i+1)).join(',')+')';const res=await pool.query(sql,values);return {data:name==='verify_site_login_code'?res.rows:(res.rows[0]?.[name]??res.rows),error:null};}catch(e:any){return {data:null,error:{message:e.message,code:e.code??'DB_ERROR'}};}
     }
   };
+}
+
+
+/**
+ * Execute a group of database writes atomically using the shared PostgreSQL pool.
+ * The callback must use the supplied client for every query in the transaction.
+ */
+export async function withDatabaseTransaction<T>(
+  callback: (client: PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }

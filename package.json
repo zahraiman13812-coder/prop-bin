@@ -9,7 +9,8 @@
     "db:migrate": "node scripts/migrate-db.mjs",
     "check:types": "tsc --noEmit",
     "db:verify": "node scripts/db-verify.mjs",
-    "db:setup": "npm run db:migrate && npm run db:verify"
+    "db:setup": "npm run db:migrate && npm run db:verify",
+    "preflight": "node scripts/preflight-handover.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

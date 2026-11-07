@@ -19,6 +19,22 @@ export default function SubmissionManager() {
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | Submission["status"]>("all");
+
+  const filteredItems = items.filter((item) => {
+    const query = search.trim().toLocaleLowerCase("fa");
+    const matchesSearch = !query || [item.name, item.email, item.period, item.issued_code || ""]
+      .some((value) => value.toLocaleLowerCase("fa").includes(query));
+    return matchesSearch && (statusFilter === "all" || item.status === statusFilter);
+  });
+
+  const statusCounts = {
+    pending: items.filter((item) => item.status === "pending").length,
+    approved: items.filter((item) => item.status === "approved").length,
+    rejected: items.filter((item) => item.status === "rejected").length,
+    issued: items.filter((item) => item.status === "issued").length,
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,9 +82,31 @@ export default function SubmissionManager() {
     {error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
     {message && <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">{message}</p>}
     {loading && <p className="text-sm text-muted">در حال دریافت درخواست‌ها...</p>}
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+      <input
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="جست‌وجو بر اساس نام، ایمیل، دوره یا کد..."
+        aria-label="جست‌وجوی شرکت‌کنندگان قرعه‌کشی"
+        className="min-w-0 rounded-xl border border-border-theme bg-background px-4 py-3 text-sm outline-none focus:border-primary"
+      />
+      <select
+        value={statusFilter}
+        onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+        aria-label="فیلتر وضعیت درخواست"
+        className="rounded-xl border border-border-theme bg-background px-4 py-3 text-sm"
+      >
+        <option value="all">همه وضعیت‌ها ({items.length})</option>
+        <option value="pending">در انتظار بررسی ({statusCounts.pending})</option>
+        <option value="approved">تأیید شده ({statusCounts.approved})</option>
+        <option value="issued">کد صادر شده ({statusCounts.issued})</option>
+        <option value="rejected">رد شده ({statusCounts.rejected})</option>
+      </select>
+    </div>
     {!loading && !items.length && <p className="text-sm text-muted">هنوز درخواستی ثبت نشده است.</p>}
+    {!loading && items.length > 0 && filteredItems.length === 0 && <p className="text-sm text-muted">درخواستی با این جست‌وجو یا فیلتر پیدا نشد.</p>}
     <div className="grid gap-5">
-      {items.map(item => <article key={item.id} className="space-y-4 rounded-xl border border-border-theme bg-background p-4">
+      {filteredItems.map(item => <article key={item.id} className="space-y-4 rounded-xl border border-border-theme bg-background p-4">
         <div className="flex flex-wrap justify-between gap-3">
           <div><h3 className="font-bold">{item.name}</h3><p dir="ltr" className="break-all text-left text-sm text-muted">{item.email}</p>
             <p className="mt-1 text-xs text-muted">دوره: {item.period} | {new Date(item.created_at).toLocaleString("fa-IR")}</p></div>

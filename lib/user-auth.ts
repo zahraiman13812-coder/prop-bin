@@ -137,8 +137,8 @@ async function sendCodeEmail(to: string, code: string): Promise<void> {
   const subject = "کد یک‌بارمصرف ورود به پراپ‌بین";
   const text = `کد ورود شما: ${code}\nاعتبار: ۱۰ دقیقه\nاگر این درخواست را ثبت نکرده‌اید، این پیام را نادیده بگیرید.`;
 
-  // For the temporary vercel.app website, send through a Gmail App Password.
-  // After connecting a domain, RESEND_API_KEY + MAIL_FROM can replace Gmail.
+  // Resend is the preferred provider when RESEND_API_KEY and MAIL_FROM are configured.
+  // Gmail SMTP remains an optional fallback for environments without Resend.
   if (process.env.RESEND_API_KEY && process.env.MAIL_FROM) {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",

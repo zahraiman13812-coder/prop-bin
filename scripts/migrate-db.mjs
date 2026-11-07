@@ -16,6 +16,7 @@ const steps = [
   "database/migrations/2026-allow-repeated-discount-codes.sql",
   "database/migrations/2026-firm-purchase-method.sql",
   "database/migrations/2026-lottery-complete.sql",
+  "database/migrations/2026-article-lottery-issued-entry-sync.sql",
 ];
 
 if (!process.env.DATABASE_URL) {
