@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validOrigin } from "@/lib/guard";
-import { randomBytes } from "node:crypto";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +31,9 @@ export async function GET() {
     return json({ submissions: data || [] });
   } catch (error) {
     console.error("Admin lottery submissions GET:", error);
-    return json({ error: "دریافت درخواست‌ها ناموفق بود." }, 503);
+    return json({ error: error && typeof error === "object" && "code" in error && error.code === "42P01"
+      ? "جدول ثبت تصاویر در دیتابیس Production یافت نشد. صفحه عیب‌یابی مدیر را بررسی کنید."
+      : "دریافت درخواست‌ها ناموفق بود." }, 503);
   }
 }
 

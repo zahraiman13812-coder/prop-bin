@@ -6,7 +6,6 @@ import Link from "next/link";
 type LotteryInfo = {
   enabled: boolean; title: string; description: string; period: string;
   articleSlug: string; signedIn: boolean;
-  entry: null | { code: string; createdAt: string };
 };
 type Submission = {
   id: string; status: "pending" | "approved" | "rejected" | "issued";
@@ -17,6 +16,13 @@ const statusLabels: Record<Submission["status"], string> = {
   rejected: "رد شده", issued: "کد صادر شد",
 };
 const MAX_FILES = 5;
+async function readJson(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(`پاسخ سرور معتبر نیست (HTTP ${response.status}). لطفاً نسخه منتشرشده و لاگ‌ها را بررسی کنید.`);
+  }
+  return response.json();
+}
 async function shrinkImage(file: File): Promise<string> {
   if (!file.type.match(/^image\/(jpeg|png|webp)$/)) throw new Error("فقط تصویر JPG، PNG یا WEBP قابل ارسال است.");
   const bitmap = await createImageBitmap(file);
@@ -48,12 +54,12 @@ export default function LotteryPage() {
       try {
         const response = await fetch("/api/lottery", { cache: "no-store" });
         if (!response.ok) throw new Error("دریافت اطلاعات قرعه‌کشی ناموفق بود.");
-        const data = (await response.json()) as LotteryInfo;
+        const data = (await readJson(response)) as LotteryInfo;
         if (!active) return;
         setInfo(data);
         if (data.signedIn) {
           const subResponse = await fetch("/api/lottery/submission", { cache: "no-store" });
-          const subData = await subResponse.json();
+          const subData = await readJson(subResponse);
           if (!subResponse.ok) throw new Error(subData.error || "دریافت درخواست ناموفق بود.");
           if (active) setSubmission(subData.submission || null);
         }
@@ -87,7 +93,7 @@ export default function LotteryPage() {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ images }),
       });
-      const data = await response.json();
+      const data = await readJson(response);
       if (!response.ok) throw new Error(data.error || "ارسال تصاویر ناموفق بود.");
       setSubmission(data.submission); setImages([]);
     } catch (err) { setError(err instanceof Error ? err.message : "ارسال ناموفق بود."); }
@@ -117,10 +123,6 @@ export default function LotteryPage() {
             <Link className="mt-3 inline-block text-primary underline" href="/account">مشاهده در پنل کاربری</Link>
           </div>}
           {submission.status !== "issued" && <p className="text-sm text-muted">بعد از بررسی تصاویر، مدیر نتیجه را اعلام می‌کند.</p>}
-        </div> : info.entry ? <div className="rounded-xl border border-primary/30 p-5">
-          <p className="font-bold">کد قبلی ثبت‌شده شما در این دوره</p>
-          <p dir="ltr" className="mt-3 break-all font-mono">{info.entry.code}</p>
-          <p className="mt-2 text-xs text-muted">کدهای قبلی حذف نشده‌اند.</p>
         </div> : <div className="space-y-4">
           <h2 className="font-bold">ارسال تصاویر برای بررسی مدیر</h2>
           <p className="text-sm leading-7 text-muted">۱ تا ۵ تصویر JPG، PNG یا WEBP انتخاب کنید. پس از ارسال، مدیر آن‌ها را بررسی می‌کند و کد را برای پنل کاربری شما صادر می‌کند.</p>

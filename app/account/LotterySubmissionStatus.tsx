@@ -9,7 +9,6 @@ const labels: Record<Submission["status"], string> = {
 };
 export default function LotterySubmissionStatus() {
   const [submission, setSubmission] = useState<Submission | null>(null);
-  const [legacyCode, setLegacyCode] = useState("");
   const [period, setPeriod] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -17,17 +16,15 @@ export default function LotterySubmissionStatus() {
     let active = true;
     (async () => {
       try {
-        const [s, l] = await Promise.all([
-          fetch("/api/lottery/submission", { cache: "no-store" }),
-          fetch("/api/lottery", { cache: "no-store" }),
-        ]);
+        const s = await fetch("/api/lottery/submission", { cache: "no-store" });
+        if (!(s.headers.get("content-type") || "").includes("application/json")) {
+          throw new Error(`پاسخ سرور معتبر نیست (HTTP ${s.status}).`);
+        }
         const sr = await s.json();
         if (!s.ok) throw new Error(sr.error || "دریافت وضعیت ناموفق بود.");
-        const lr = l.ok ? await l.json() : null;
         if (active) {
           setSubmission(sr.submission || null);
-          setPeriod(sr.period || lr?.period || "");
-          setLegacyCode(lr?.entry?.code || "");
+          setPeriod(sr.period || "");
         }
       } catch (err) { if (active) setError(err instanceof Error ? err.message : "خطا در دریافت وضعیت"); }
       finally { if (active) setLoading(false); }
@@ -46,8 +43,6 @@ export default function LotterySubmissionStatus() {
           <p className="mb-2 font-bold">کد اختصاصی شما</p>
           <p dir="ltr" className="break-all text-center font-mono text-lg font-extrabold text-primary">{submission.issued_code}</p>
         </div>}
-      </> : legacyCode ? <>
-        <p className="text-sm">کد ثبت‌شده قبلی شما:</p><p dir="ltr" className="break-all font-mono font-bold text-primary">{legacyCode}</p>
       </> : <p className="text-sm text-muted">هنوز درخواستی برای این دوره ثبت نکرده‌اید.</p>}
       <Link href="/lottery" className="inline-block font-bold text-primary underline">مشاهده صفحه قرعه‌کشی</Link>
     </div>}

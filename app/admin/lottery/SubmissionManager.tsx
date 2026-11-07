@@ -24,6 +24,8 @@ export default function SubmissionManager() {
     setLoading(true);
     try {
       const response = await fetch("/api/admin/lottery/submissions", { cache: "no-store", credentials: "same-origin" });
+      if (!(response.headers.get("content-type") || "").includes("application/json"))
+        throw new Error(`پاسخ سرور معتبر نیست (HTTP ${response.status}).`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "دریافت درخواست‌ها ناموفق بود.");
       setItems(Array.isArray(data.submissions) ? data.submissions : []);
@@ -44,6 +46,8 @@ export default function SubmissionManager() {
         method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id, action, code: codes[item.id] || "", note: notes[item.id] || "" }),
       });
+      if (!(response.headers.get("content-type") || "").includes("application/json"))
+        throw new Error(`پاسخ سرور معتبر نیست (HTTP ${response.status}).`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "عملیات ناموفق بود.");
       setMessage(data.message || "انجام شد.");
@@ -56,7 +60,8 @@ export default function SubmissionManager() {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="text-xl font-extrabold">درخواست‌های ارسال عکس قرعه‌کشی</h2>
         <p className="mt-2 text-sm text-muted">تصاویر فقط برای مدیر نمایش داده می‌شوند. صدور کد پس از تأیید امکان‌پذیر است.</p></div>
-      <button type="button" onClick={() => void load()} disabled={loading} className="rounded-xl border border-border-theme px-4 py-2 text-sm disabled:opacity-50">به‌روزرسانی</button>
+      <div className="flex items-center gap-3"><a href="/api/admin/lottery/diagnostics" target="_blank" rel="noreferrer" className="text-sm text-primary underline">عیب‌یابی اتصال دیتابیس</a>
+      <button type="button" onClick={() => void load()} disabled={loading} className="rounded-xl border border-border-theme px-4 py-2 text-sm disabled:opacity-50">به‌روزرسانی</button></div>
     </div>
     {error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
     {message && <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">{message}</p>}

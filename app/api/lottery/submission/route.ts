@@ -12,6 +12,13 @@ const MAX_IMAGES = 5;
 const MAX_IMAGE_SIZE = 1024 * 1024;
 const MAX_TOTAL_SIZE = 5 * 1024 * 1024;
 
+function databaseMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "code" in error && error.code === "42P01") {
+    return "جدول ارسال تصاویر در دیتابیس متصل به سایت وجود ندارد. مدیر باید اتصال DATABASE_URL محیط Production را بررسی و SQL نصب را روی همان دیتابیس اجرا کند.";
+  }
+  return fallback;
+}
+
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, {
     status,
@@ -40,7 +47,7 @@ export async function GET() {
     return json({ submission: data, period });
   } catch (error) {
     console.error("Lottery submission GET:", error);
-    return json({ error: "دریافت وضعیت درخواست ناموفق بود." }, 503);
+    return json({ error: databaseMessage(error, "دریافت وضعیت درخواست ناموفق بود.") }, 503);
   }
 }
 
@@ -123,11 +130,11 @@ export async function POST(request: NextRequest) {
       .from("article_lottery_submissions")
       .insert({
         user_id: user.id,
-  name: user.name,
-  email: user.email,
-  period: lottery.period,
-  images: JSON.stringify(images),
-  status: "pending",
+        name: user.name,
+        email: user.email,
+        period: lottery.period,
+        images: JSON.stringify(images),
+        status: "pending",
       })
       .select("id,status,created_at")
       .single();
@@ -143,9 +150,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Lottery submission POST:", error);
     return json({
-      error: error instanceof Error
+      error: databaseMessage(error, error instanceof Error
         ? error.message
-        : "ثبت درخواست ناموفق بود.",
-    }, 400);
+        : "ثبت درخواست ناموفق بود."),
+    }, error && typeof error === "object" && "code" in error && error.code === "42P01" ? 503 : 400);
   }
 }
