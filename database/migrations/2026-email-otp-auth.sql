@@ -60,7 +60,7 @@ BEGIN
     expires_at=now()-interval '1 second', attempts=5 WHERE site_login_codes.email=p_email;
   IF c.mode = 'register' THEN
     INSERT INTO public.site_users(email,name) VALUES (p_email, COALESCE(NULLIF(c.name,''),'کاربر پراپ‌بین'))
-      ON CONFLICT(email) DO NOTHING;
+    ON CONFLICT DO NOTHING;
   END IF;
   RETURN QUERY SELECT u.id,u.email,u.name,u.created_at FROM public.site_users u WHERE u.email=p_email;
 END $$;

@@ -1,0 +1,151 @@
+
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser, isDemoUser } from "@/lib/user-auth";
+import { getContent } from "@/lib/content";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { validOrigin } from "@/lib/guard";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const MAX_IMAGES = 5;
+const MAX_IMAGE_SIZE = 1024 * 1024;
+const MAX_TOTAL_SIZE = 5 * 1024 * 1024;
+
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) return json({ error: "ابتدا وارد حساب شوید." }, 401);
+
+    const content = await getContent();
+    const period = content.articleLottery.period;
+
+    const { data, error } = await getSupabaseAdmin()
+      .from("article_lottery_submissions")
+      .select("id,status,issued_code,admin_note,created_at,reviewed_at")
+      .eq("user_id", user.id)
+      .eq("period", period)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return json({ submission: data, period });
+  } catch (error) {
+    console.error("Lottery submission GET:", error);
+    return json({ error: "دریافت وضعیت درخواست ناموفق بود." }, 503);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  if (!validOrigin(request)) {
+    return json({ error: "درخواست نامعتبر است." }, 403);
+  }
+
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) return json({ error: "ابتدا وارد حساب شوید." }, 401);
+
+    if (isDemoUser(user)) {
+      return json({ error: "حساب نمایشی اجازه ارسال درخواست ندارد." }, 403);
+    }
+
+    const content = await getContent();
+    const lottery = content.articleLottery;
+
+    if (!lottery.enabled || !lottery.period?.trim()) {
+      return json({ error: "قرعه‌کشی فعال نیست." }, 403);
+    }
+
+    const body = await request.json();
+
+    if (!Array.isArray(body.images) ||
+        body.images.length < 1 ||
+        body.images.length > MAX_IMAGES) {
+      return json({ error: "باید بین ۱ تا ۵ تصویر ارسال کنید." }, 400);
+    }
+
+    let totalSize = 0;
+
+    const images = body.images.map((image: unknown) => {
+      if (typeof image !== "string") {
+        throw new Error("فرمت تصویر نامعتبر است.");
+      }
+
+      const match = image.match(
+        /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/
+      );
+
+      if (!match) throw new Error("فقط JPG، PNG و WEBP مجاز هستند.");
+
+      const buffer = Buffer.from(match[2], "base64");
+
+      if (!buffer.length || buffer.length > MAX_IMAGE_SIZE) {
+        throw new Error("حجم هر تصویر باید حداکثر ۱ مگابایت باشد.");
+      }
+
+      totalSize += buffer.length;
+
+      if (totalSize > MAX_TOTAL_SIZE) {
+        throw new Error("حجم مجموع تصاویر بیش از حد مجاز است.");
+      }
+
+      return image;
+    });
+
+    const db = getSupabaseAdmin();
+
+    const { data: existing, error: lookupError } = await db
+      .from("article_lottery_submissions")
+      .select("id,status")
+      .eq("user_id", user.id)
+      .eq("period", lottery.period)
+      .maybeSingle();
+
+    if (lookupError) throw lookupError;
+
+    if (existing) {
+      return json({
+        error: "برای این دوره قبلاً درخواست ثبت کرده‌اید.",
+        submission: existing,
+      }, 409);
+    }
+
+    const { data, error } = await db
+      .from("article_lottery_submissions")
+      .insert({
+        user_id: user.id,
+        name: user.name,
+        email: user.email,
+        period: lottery.period,
+        images,
+        status: "pending",
+      })
+      .select("id,status,created_at")
+      .single();
+
+    if (error) {
+      if (error.code === "23505") {
+        return json({ error: "درخواست شما قبلاً ثبت شده است." }, 409);
+      }
+      throw error;
+    }
+
+    return json({ ok: true, submission: data });
+  } catch (error) {
+    console.error("Lottery submission POST:", error);
+    return json({
+      error: error instanceof Error
+        ? error.message
+        : "ثبت درخواست ناموفق بود.",
+    }, 400);
+  }
+}
