@@ -7,11 +7,21 @@ export function isValidArticleImage(
     /^\/(?:uploads\/articles|articles)\/[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/i;
 
   if (localPattern.test(image)) return true;
+  // Persistent local storage used by the PostgreSQL-backed deployment.
+  if (/^\/uploads\/article-images\/covers\/[a-zA-Z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i.test(image)) return true;
 
   try {
     const url = new URL(image);
     if (url.protocol !== "https:" || url.username || url.password) {
       return false;
+    }
+
+    // Public URLs served by this installation's persistent uploads route.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://propbin.com";
+    const site = new URL(siteUrl);
+    if (url.origin === site.origin &&
+        /^\/uploads\/article-images\/covers\/[a-zA-Z0-9._-]+\.(?:jpg|jpeg|png|webp)$/i.test(url.pathname)) {
+      return true;
     }
 
     // Public Vercel Blob URLs use a unique store subdomain.

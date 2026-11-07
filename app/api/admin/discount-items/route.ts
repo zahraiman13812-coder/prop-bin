@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -6,10 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const respond = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  try { return !!origin && new URL(origin).origin === new URL(request.url).origin; }
-  catch { return false; }
+function sameOrigin(request: Request): boolean {
+  return validOrigin(request);
 }
 async function canWrite(request: Request) { return (await isAdmin()) && sameOrigin(request); }
 

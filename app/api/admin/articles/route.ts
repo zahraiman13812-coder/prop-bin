@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 
 import { NextResponse } from "next/server";
 
@@ -124,10 +125,7 @@ export async function POST(request: Request) {
     }
 
     // جلوگیری از درخواست‌های بین‌سایتی
-    const origin = request.headers.get("origin");
-    const expectedOrigin = new URL(request.url).origin;
-
-    if (!origin || origin !== expectedOrigin) {
+    if (!validOrigin(request)) {
       return NextResponse.json(
         {
           success: false,

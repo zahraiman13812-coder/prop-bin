@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:migrate": "node scripts/migrate-db.mjs",
+    "check:types": "tsc --noEmit",
+    "db:verify": "node scripts/db-verify.mjs",
+    "db:setup": "npm run db:migrate && npm run db:verify"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

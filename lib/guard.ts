@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 
 /**
  * Same-origin check for state-changing requests.
@@ -8,7 +7,7 @@ import { NextRequest } from "next/server";
  * an IP address), which produced false 403 responses. The Host header is the
  * value the browser signed the Origin against, so compare with that instead.
  */
-export function validOrigin(request: NextRequest) {
+export function validOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) return false;
 
@@ -19,7 +18,7 @@ export function validOrigin(request: NextRequest) {
    */
   const host =
     request.headers.get("host") ||
-    request.nextUrl.host;
+    new URL(request.url).host;
 
   if (!host) return false;
 

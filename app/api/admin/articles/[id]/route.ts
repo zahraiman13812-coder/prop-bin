@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
@@ -43,17 +44,8 @@ function isValidId(id: string) {
   return UUID_PATTERN.test(id);
 }
 
-function isSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-
-  if (!origin) return false;
-
-  try {
-    return new URL(origin).origin ===
-      new URL(request.url).origin;
-  } catch {
-    return false;
-  }
+function isSameOrigin(request: Request): boolean {
+  return validOrigin(request);
 }
 
 function isValidationError(message: string) {
@@ -339,8 +331,7 @@ export async function DELETE(
 
     try {
       if (
-        new URL(origin).origin !==
-        new URL(request.url).origin
+        !validOrigin(request)
       ) {
         return Response.json(
           {

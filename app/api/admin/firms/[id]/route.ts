@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 
 import { NextResponse } from "next/server";
 
@@ -53,19 +54,8 @@ function respond(
   });
 }
 
-function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-
-  if (!origin) return false;
-
-  try {
-    return (
-      new URL(origin).origin ===
-      new URL(request.url).origin
-    );
-  } catch {
-    return false;
-  }
+function sameOrigin(request: Request): boolean {
+  return validOrigin(request);
 }
 
 async function readJson(request: Request): Promise<unknown> {

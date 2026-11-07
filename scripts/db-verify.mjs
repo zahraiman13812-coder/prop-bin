@@ -1,0 +1,105 @@
+import pg from "pg";
+
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is required.");
+  process.exit(1);
+}
+
+const requiredTables = [
+  "admin_credentials", "site_settings", "site_users", "site_login_codes",
+  "user_auth_attempts", "prop_firms", "firm_details", "firm_discounts",
+  "articles", "article_image_references", "site_polls", "firm_questions",
+  "firm_compare_rows", "support_threads", "support_messages",
+  "article_lottery_settings", "article_lottery_entries", "article_lottery_winners",
+  "article_lottery_submissions",
+];
+
+const requiredColumns = {
+  site_users: ["id", "email", "name", "phone", "password_hash", "recovery_hash", "session_version"],
+  site_login_codes: ["email", "hash", "mode", "expires_at", "attempts", "window_start", "requests_in_window"],
+  prop_firms: ["id", "name", "discount_intro", "purchase_method", "is_active", "sort_order"],
+  firm_discounts: ["id", "firm_id", "code", "amount", "description", "sort_order"],
+  articles: ["id", "title", "slug", "body", "image", "status", "published_at"],
+  article_lottery_submissions: ["id", "user_id", "name", "email", "period", "images", "status", "issued_code", "admin_note"],
+};
+
+const client = new pg.Client({
+  connectionString: process.env.DATABASE_URL,
+  application_name: "propbin-db-verifier",
+  connectionTimeoutMillis: 10000,
+});
+
+let failed = false;
+try {
+  await client.connect();
+  const db = await client.query("SELECT current_database() AS database, current_user AS db_user, current_schema() AS schema");
+  console.log(`Connected: database=${db.rows[0].database}; user=${db.rows[0].db_user}; schema=${db.rows[0].schema}`);
+
+  for (const table of requiredTables) {
+    const result = await client.query("SELECT to_regclass($1) AS found", [`public.${table}`]);
+    if (result.rows[0].found) console.log("OK table", table);
+    else { console.error("MISSING table", table); failed = true; }
+  }
+
+  for (const [table, columns] of Object.entries(requiredColumns)) {
+    const result = await client.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema='public' AND table_name=$1`,
+      [table],
+    );
+    const found = new Set(result.rows.map((r) => r.column_name));
+    for (const column of columns) {
+      if (found.has(column)) console.log("OK column", `${table}.${column}`);
+      else { console.error("MISSING column", `${table}.${column}`); failed = true; }
+    }
+  }
+
+  for (const fn of ["reserve_site_login_code", "verify_site_login_code"]) {
+    const result = await client.query(
+      "SELECT to_regprocedure($1) AS found",
+      [fn === "reserve_site_login_code"
+        ? "public.reserve_site_login_code(text,text,text,text)"
+        : "public.verify_site_login_code(text,text)"],
+    );
+    if (result.rows[0].found) console.log("OK function", fn);
+    else { console.error("MISSING function", fn); failed = true; }
+  }
+
+  const singletonChecks = [
+    ["site_settings", "id", 1],
+    ["admin_credentials", "id", 1],
+    ["article_lottery_settings", "id", 1],
+  ];
+  for (const [table, column, value] of singletonChecks) {
+    const result = await client.query(
+      `SELECT 1 FROM public.${table} WHERE ${column} = $1 LIMIT 1`,
+      [value],
+    );
+    if (result.rowCount) console.log("OK default row", `${table}.${column}=${value}`);
+    else { console.error("MISSING default row", `${table}.${column}=${value}`); failed = true; }
+  }
+
+  for (const table of ["wheel_settings", "wheel_prizes", "wheel_spins", "wheel_draws"]) {
+    const result = await client.query("SELECT to_regclass($1) AS found", [`public.${table}`]);
+    if (!result.rows[0].found) console.log("OK excluded wheel table", table);
+    else { console.error("UNWANTED wheel table exists", table); failed = true; }
+  }
+
+  const history = await client.query(
+    "SELECT filename, applied_at FROM public.app_schema_migrations ORDER BY applied_at, filename",
+  );
+  console.log(`Migration history: ${history.rowCount} recorded step(s).`);
+  for (const row of history.rows) console.log("  -", row.filename);
+
+  if (failed) {
+    console.error("DATABASE VERIFICATION FAILED. Do not hand over this database yet.");
+    process.exitCode = 1;
+  } else {
+    console.log("DATABASE VERIFICATION PASSED.");
+  }
+} catch (error) {
+  console.error("Database verification error:", error.message);
+  process.exitCode = 1;
+} finally {
+  await client.end().catch(() => {});
+}

@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 
 import { NextResponse } from "next/server";
 
@@ -59,18 +60,7 @@ function json(body: unknown, status = 200) {
 }
 
 function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-
-  if (!origin) return false;
-
-  try {
-    return (
-      new URL(origin).origin ===
-      new URL(request.url).origin
-    );
-  } catch {
-    return false;
-  }
+  return validOrigin(request);
 }
 
 async function readLimitedJson(

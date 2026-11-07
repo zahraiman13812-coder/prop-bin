@@ -1,13 +1,13 @@
 import 'server-only';
 import { Pool } from 'pg';
-import { mkdir, writeFile, unlink, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, unlink, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const globalDb = globalThis as typeof globalThis & { __propinPool?: Pool };
+// Reuse one pool per process; hot reload does not exhaust database connections.
 const pool = globalDb.__propinPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 12 });
-if (process.env.NODE_ENV !== 'production') globalDb.__propinPool = pool;
-const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions',
-  'admin_credentials','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads','wheel_draws','wheel_prizes','wheel_settings','wheel_spins']);
+globalDb.__propinPool = pool;
+const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads','wheel_draws','wheel_prizes','wheel_settings','wheel_spins']);
 const ident = (v: string) => { if (!/^[a-z][a-z0-9_]*$/.test(v)) throw Error('Invalid SQL identifier'); return '"'+v+'"'; };
 const safeTable = (name: string) => { if (!tables.has(name)) throw Error('Unknown table: '+name); return ident(name); };
 const storageRoot = path.join(process.cwd(), '.uploads');
@@ -84,7 +84,23 @@ function storageBucket(bucket:string) {
 }) {try {const p=safePath(bucket,name);await mkdir(path.dirname(p),{recursive:true});await writeFile(p,bytes,{flag:opts?.upsert?'w':'wx'});return {data:{path:name},error:null};}catch(e:any){return {data:null,error:{message:e.message}};}},
     getPublicUrl(name:string){ const base=(process.env.NEXT_PUBLIC_SITE_URL||'https://propbin.com').replace(/\/$/,'');return {data:{publicUrl:base+'/uploads/'+encodeURIComponent(bucket)+'/'+name.split('/').map(encodeURIComponent).join('/')}};},
     async remove(names:string[]){try{for(const name of names){await unlink(safePath(bucket,name)).catch((e:any)=>{if(e.code!=='ENOENT')throw e;});}return {data:names.map(name=>({name})),error:null};}catch(e:any){return {data:null,error:{message:e.message}};}},
-    async list(folder='',options?:{limit?:number;offset?:number;search?:string;sortBy?:unknown}) {try{const dir=path.resolve(storageRoot,bucket,folder);if(!dir.startsWith(path.resolve(storageRoot,bucket)))throw Error('Invalid path');const files=await readdir(dir,{withFileTypes:true}).catch((e:any)=>{if(e.code==='ENOENT')return [];throw e;});const names=files.filter(f=>f.isFile()&&(!options?.search||f.name.includes(options.search))).map(f=>({name:f.name,id:f.name,metadata:{}}));return {data:names.slice(options?.offset||0,(options?.offset||0)+(options?.limit||100)),error:null};}catch(e:any){return {data:null,error:{message:e.message}};}}
+    async list(folder='',options?:{limit?:number;offset?:number;search?:string;sortBy?:unknown}) {
+      try {
+        const bucketRoot=path.resolve(storageRoot,bucket);
+        if(!/^[a-zA-Z0-9_-]+$/.test(bucket)) throw Error('Invalid bucket');
+        const dir=path.resolve(bucketRoot,folder);
+        if(dir!==bucketRoot && !dir.startsWith(bucketRoot+path.sep)) throw Error('Invalid path');
+        const files=await readdir(dir,{withFileTypes:true}).catch((e:any)=>{if(e.code==='ENOENT')return [];throw e;});
+        const selected=files.filter(f=>f.isFile()&&(!options?.search||f.name.includes(options.search)))
+          .sort((a,b)=>a.name.localeCompare(b.name));
+        const start=Math.max(0,options?.offset||0), end=start+Math.min(1000,Math.max(0,options?.limit??100));
+        const names=await Promise.all(selected.slice(start,end).map(async f=>{
+          const details=await stat(path.join(dir,f.name));
+          return {name:f.name,id:f.name,metadata:{size:details.size},created_at:details.birthtime.toISOString()};
+        }));
+        return {data:names,error:null};
+      } catch(e:any) {return {data:null,error:{message:e.message}};}
+    }
   };
 }
 export function getSupabaseAdmin() {

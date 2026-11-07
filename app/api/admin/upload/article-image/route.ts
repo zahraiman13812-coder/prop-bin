@@ -1,7 +1,9 @@
 
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
+import { NextRequest } from "next/server";
+import { validOrigin } from "@/lib/guard";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 import { isAdmin } from "@/lib/auth";
 
@@ -24,21 +26,6 @@ function reply(data: unknown, status = 200) {
       "Cache-Control": "no-store",
     },
   });
-}
-
-function sameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-
-  if (!origin) return false;
-
-  try {
-    return (
-      new URL(origin).origin ===
-      new URL(request.url).origin
-    );
-  } catch {
-    return false;
-  }
 }
 
 function validSignature(
@@ -78,7 +65,7 @@ function validSignature(
   return false;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     if (!(await isAdmin())) {
       return reply(
@@ -87,7 +74,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!sameOrigin(request)) {
+    if (!validOrigin(request)) {
       return reply(
         {
           success: false,
@@ -190,17 +177,24 @@ export async function POST(request: Request) {
     const pathname =
       `covers/${randomUUID()}.${extension}`;
 
-    // Upload image to Vercel Blob
-    const blob = await put(pathname, file, {
-      access: "public",
-      addRandomSuffix: false,
+    // Use the same persistent storage backend as the rest of the application.
+    // The returned pathname is kept compatible with article image references.
+    const storage = getSupabaseAdmin().storage.from("article-images");
+    const { data, error } = await storage.upload(pathname, bytes, {
+      contentType: file.type,
+      cacheControl: "31536000",
+      upsert: false,
     });
+    if (error || !data) {
+      console.error("Article cover storage error:", error?.message);
+      return reply({ success: false, error: "ذخیره تصویر ناموفق بود." }, 500);
+    }
 
     return reply(
       {
         success: true,
-        url: blob.url,
-        path: blob.pathname,
+        url: storage.getPublicUrl(data.path).data.publicUrl,
+        path: data.path,
       },
       201
     );

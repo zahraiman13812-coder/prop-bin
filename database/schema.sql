@@ -15,14 +15,8 @@ CREATE TABLE IF NOT EXISTS article_lottery_settings (id integer PRIMARY KEY DEFA
 INSERT INTO article_lottery_settings(id) VALUES (1) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS article_lottery_entries(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id text NOT NULL,name text DEFAULT '',email text DEFAULT '',code text NOT NULL UNIQUE,period text NOT NULL,created_at timestamptz DEFAULT now(),UNIQUE(user_id,period));
 CREATE TABLE IF NOT EXISTS article_lottery_winners(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),period text NOT NULL UNIQUE,entry_id uuid REFERENCES article_lottery_entries(id),selected_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS wheel_settings(id text PRIMARY KEY DEFAULT 'main',is_active boolean NOT NULL DEFAULT false,title text DEFAULT 'گردونه شانس',description text DEFAULT '',terms text DEFAULT '',spin_limit integer NOT NULL DEFAULT 1,limit_period text DEFAULT 'month',updated_at timestamptz DEFAULT now());
-INSERT INTO wheel_settings(id) VALUES ('main') ON CONFLICT DO NOTHING;
-CREATE TABLE IF NOT EXISTS wheel_prizes(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),label text NOT NULL,description text DEFAULT '',color text DEFAULT '#cccccc',weight integer NOT NULL DEFAULT 1,code text,is_active boolean DEFAULT true,sort_order integer DEFAULT 0,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS wheel_spins(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id text NOT NULL,user_name text DEFAULT '',user_email text DEFAULT '',prize_id uuid REFERENCES wheel_prizes(id),prize_label text DEFAULT '',prize_code text,period_key text NOT NULL,created_at timestamptz DEFAULT now());
-CREATE TABLE IF NOT EXISTS wheel_draws(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),month text NOT NULL,user_id text NOT NULL,user_name text DEFAULT '',user_email text DEFAULT '',prize_id uuid REFERENCES wheel_prizes(id),prize_label text DEFAULT '',spin_id uuid REFERENCES wheel_spins(id),created_at timestamptz DEFAULT now());
 CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status,published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_firms_sort ON prop_firms(is_active,sort_order);
-CREATE INDEX IF NOT EXISTS idx_spins_user_period ON wheel_spins(user_id,period_key);
 CREATE INDEX IF NOT EXISTS idx_messages_thread ON support_messages(thread_id,created_at);
 CREATE INDEX IF NOT EXISTS idx_polls_firm ON site_polls(firm_id,approved);
 

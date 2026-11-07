@@ -1,3 +1,4 @@
+import { validOrigin } from "@/lib/guard";
 import { firmSpecificationFields } from "@/lib/firm-specifications";
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
@@ -32,7 +33,7 @@ export async function GET(request:NextRequest) {
   try{return response({details:await getFirmDetails(id)})}catch(e){console.error(e);return response({error:"دریافت اطلاعات شرکت ناموفق بود؛ ساختار دیتابیس را بررسی کنید"},500)}
 }
 export async function PUT(request:NextRequest) {
-  if(request.headers.get("origin")!==new URL(request.url).origin || !await isAdmin()) return response({error:"دسترسی غیرمجاز"},403);
+  if(!validOrigin(request) || !await isAdmin()) return response({error:"دسترسی غیرمجاز"},403);
   if(Number(request.headers.get("content-length")||0)>100000) return response({error:"حجم داده بیش از حد مجاز است"},413);
   const body=await request.json().catch(()=>null);
   if(!idPattern.test(body?.id||"") || !body?.details) return response({error:"ورودی نامعتبر"},400);
