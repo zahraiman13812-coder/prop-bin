@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/auth";
 import { getContent } from "@/lib/content";
-import { saveArticleLotterySettings } from "@/lib/supabase-lottery";
+import { saveArticleLotterySettings, getArticleLotterySettings } from "@/lib/supabase-lottery";
 import { validOrigin } from "@/lib/guard";
 import { getPublishedArticles } from "@/lib/supabase-articles";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
@@ -225,8 +225,27 @@ export async function GET() {
       savedEntries
     );
     const winners = await getSavedWinners(entries);
+    const { data: submissionRows, error: submissionsError } = await getSupabaseAdmin()
+      .from("article_lottery_submissions")
+      .select("period")
+      .limit(5000);
+    if (submissionsError) throw submissionsError;
+
+    const periods = new Set<string>();
+    entries.forEach((entry) => periods.add(entry.period));
+    winners.forEach((winner) => periods.add(winner.period));
+    (submissionRows ?? []).forEach((row: { period: string }) => periods.add(row.period));
+    if (content.articleLottery.period) periods.add(content.articleLottery.period);
+    const rounds = [...periods].map((period) => ({
+      period,
+      entries: entries.filter((entry) => entry.period === period).length,
+      submissions: (submissionRows ?? []).filter((row: { period: string }) => row.period === period).length,
+      winner: winners.find((winner) => winner.period === period)?.name ?? null,
+      active: content.articleLottery.period === period && content.articleLottery.enabled,
+    })).sort((a, b) => a.period.localeCompare(b.period, "fa"));
 
     return json({
+      rounds,
       lottery: {
         ...content.articleLottery,
         entries,
@@ -308,6 +327,62 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Admin lottery winner POST failed:", error);
     return json({ error: "ثبت برنده قرعه‌کشی ناموفق بود." }, 503);
+  }
+}
+
+/**
+ * Permanently delete one lottery period and its related records.
+ * The active period is disabled before its records are removed.
+ */
+export async function DELETE(request: NextRequest) {
+  if (!validOrigin(request) || !(await isAdmin())) {
+    return json({ error: "دسترسی غیرمجاز است." }, 403);
+  }
+
+  const body: unknown = await request.json().catch(() => null);
+  const period = cleanText(
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as { period?: unknown }).period
+      : "",
+    100
+  );
+
+  if (!period) {
+    return json({ error: "نام دوره برای حذف مشخص نشده است." }, 400);
+  }
+
+  try {
+    const db = getSupabaseAdmin();
+    const settings = await getArticleLotterySettings();
+
+    // Disable the current round first so nobody can submit while it is being removed.
+    if (settings.period === period && settings.enabled) {
+      await saveArticleLotterySettings({ ...settings, enabled: false });
+    }
+
+    // Delete dependent records first. Winners reference entries.
+    const winners = await db.from("article_lottery_winners").delete().eq("period", period);
+    if (winners.error) throw winners.error;
+
+    const submissions = await db.from("article_lottery_submissions").delete().eq("period", period);
+    if (submissions.error) throw submissions.error;
+
+    const entries = await db.from("article_lottery_entries").delete().eq("period", period);
+    if (entries.error) throw entries.error;
+
+    return json({
+      ok: true,
+      period,
+      deleted: {
+        winners: Array.isArray(winners.data) ? winners.data.length : 0,
+        submissions: Array.isArray(submissions.data) ? submissions.data.length : 0,
+        entries: Array.isArray(entries.data) ? entries.data.length : 0,
+      },
+      message: `دوره «${period}» و اطلاعات وابسته آن حذف شد.`,
+    });
+  } catch (error) {
+    console.error("Admin lottery DELETE failed:", error);
+    return json({ error: "حذف دوره کامل نشد. لاگ سرور را بررسی کنید؛ ممکن است بخشی از اطلاعات حذف شده باشد." }, 503);
   }
 }
 

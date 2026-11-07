@@ -34,7 +34,10 @@ type ArticleOption = {
   title: string;
 };
 
+type LotteryRound = { period: string; entries: number; submissions: number; winner: string | null; active: boolean };
+
 type ApiData = {
+  rounds?: LotteryRound[];
   lottery?: Lottery;
   articles?: ArticleOption[];
   error?: string;
@@ -45,9 +48,9 @@ export default function AdminLotteryPage() {
     null
   );
 
-  const [articles, setArticles] = useState<
-    ArticleOption[]
-  >([]);
+  const [articles, setArticles] = useState<ArticleOption[]>([]);
+  const [rounds, setRounds] = useState<LotteryRound[]>([]);
+  const [deletingPeriod, setDeletingPeriod] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +80,7 @@ export default function AdminLotteryPage() {
       }
 
       setLottery(data.lottery);
+      setRounds(Array.isArray(data.rounds) ? data.rounds : []);
 
       setArticles(
         Array.isArray(data.articles)
@@ -234,6 +238,35 @@ export default function AdminLotteryPage() {
     }
   }
 
+  async function deleteRound(round: LotteryRound) {
+    if (deletingPeriod) return;
+    const confirmed = window.confirm(
+      `هشدار: تمام اطلاعات دوره «${round.period}» شامل شرکت‌کنندگان، درخواست‌های عکس و برنده آن حذف می‌شود. این عملیات قابل بازگشت نیست. ادامه می‌دهید؟`
+    );
+    if (!confirmed) return;
+
+    setDeletingPeriod(round.period);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/lottery", {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period: round.period }),
+      });
+      const data = await response.json() as { ok?: boolean; error?: string; message?: string };
+      if (!response.ok || data.ok !== true) throw new Error(data.error || "حذف دوره ناموفق بود.");
+      setMessage(data.message || `دوره «${round.period}» حذف شد.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "حذف دوره ناموفق بود.");
+    } finally {
+      setDeletingPeriod(null);
+    }
+  }
+
   const inputClass =
     "w-full min-w-0 rounded-xl border border-border-theme bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary";
 
@@ -261,7 +294,38 @@ export default function AdminLotteryPage() {
           مشاهده صفحه عمومی
         </Link>
       </header>
-<SubmissionManager />
+<section className="space-y-4 rounded-2xl border border-border-theme bg-surface p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-extrabold">مدیریت دوره‌های قرعه‌کشی</h2>
+            <p className="mt-1 text-sm leading-6 text-muted">هر دوره به‌صورت مستقل نمایش داده می‌شود. با حذف دوره، شرکت‌کنندگان، درخواست‌های عکس و نتیجه برنده همان دوره نیز حذف خواهند شد.</p>
+          </div>
+          <span className="rounded-full bg-background px-3 py-1 text-xs font-bold text-muted">{rounds.length.toLocaleString("fa-IR")} دوره</span>
+        </div>
+        {rounds.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border-theme p-5 text-center text-sm text-muted">هنوز دوره‌ای ثبت نشده است.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {rounds.map((round) => (
+              <article key={round.period} className="min-w-0 space-y-3 rounded-xl border border-border-theme bg-background p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <h3 className="break-words font-extrabold">{round.period}</h3>
+                  {round.active ? <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600">دوره فعال</span> : <span className="rounded-full bg-surface px-2.5 py-1 text-xs text-muted">غیرفعال</span>}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted">شرکت‌کنندگان</p><p className="mt-1 font-extrabold">{round.entries.toLocaleString("fa-IR")}</p></div>
+                  <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted">درخواست عکس</p><p className="mt-1 font-extrabold">{round.submissions.toLocaleString("fa-IR")}</p></div>
+                </div>
+                {round.winner && <p className="text-sm text-emerald-600">برنده: {round.winner}</p>}
+                <button type="button" onClick={() => void deleteRound(round)} disabled={deletingPeriod !== null} className="w-full rounded-lg border border-red-500/40 px-3 py-2.5 text-sm font-bold text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">
+                  {deletingPeriod === round.period ? "در حال حذف..." : "حذف کامل این دوره"}
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+      <SubmissionManager />
       {error && (
         <p
           role="alert"
