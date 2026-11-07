@@ -123,11 +123,11 @@ export async function POST(request: NextRequest) {
       .from("article_lottery_submissions")
       .insert({
         user_id: user.id,
-        name: user.name,
-        email: user.email,
-        period: lottery.period,
-        images,
-        status: "pending",
+  name: user.name,
+  email: user.email,
+  period: lottery.period,
+  images: JSON.stringify(images),
+  status: "pending",
       })
       .select("id,status,created_at")
       .single();
