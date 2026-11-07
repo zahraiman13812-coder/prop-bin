@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import Link from "next/link";
+import LotterySubmissionStatus from "./LotterySubmissionStatus";
 import { useRouter } from "next/navigation";
 
 import {
@@ -322,6 +323,7 @@ export default function AccountPage() {
       className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12"
     >
       <div className="mx-auto max-w-[1050px] space-y-6">
+        <LotterySubmissionStatus />
         {/* اطلاعات کلی حساب */}
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border-theme bg-surface p-5 sm:p-7">
           <div className="flex min-w-0 items-center gap-4">

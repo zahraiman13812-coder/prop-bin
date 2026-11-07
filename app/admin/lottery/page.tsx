@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-
+import SubmissionManager from "./SubmissionManager";
 type Entry = {
   id: string;
   userId: string;
@@ -261,7 +261,7 @@ export default function AdminLotteryPage() {
           مشاهده صفحه عمومی
         </Link>
       </header>
-
+<SubmissionManager />
       {error && (
         <p
           role="alert"
