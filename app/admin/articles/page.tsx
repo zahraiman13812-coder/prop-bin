@@ -140,13 +140,6 @@ export default async function AdminArticlesPage({
               مقاله جدید
             </Link>
             <Link
-  href="/admin/article-images"
-  className="rounded-xl border border-border-theme bg-surface px-5 py-3 text-sm font-bold hover:border-primary"
->
-  مدیریت تصاویر
-</Link>
-
-            <Link
               href="/admin"
               className="rounded-xl border border-border-theme bg-surface px-5 py-3 text-sm font-bold transition hover:border-primary"
             >

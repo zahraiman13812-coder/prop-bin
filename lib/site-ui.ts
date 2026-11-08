@@ -195,6 +195,16 @@ export function isSafeSiteImage(
     return true;
   }
 
+  const localBranding = /^\/uploads\/branding-images\/branding\/[a-f0-9-]+\.(jpg|jpeg|png|webp)$/i;
+  if (localBranding.test(value)) return true;
+  try {
+    const imageUrl = new URL(value);
+    const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://propbin.com");
+    if (["http:", "https:"].includes(imageUrl.protocol) && imageUrl.origin === siteUrl.origin &&
+        !imageUrl.username && !imageUrl.password && !imageUrl.search && !imageUrl.hash &&
+        localBranding.test(imageUrl.pathname)) return true;
+  } catch { /* Continue checking supported legacy URLs. */ }
+
   // Only accept public URLs from this project's configured Supabase origin
   // and the expected branding bucket/folder.
   try {

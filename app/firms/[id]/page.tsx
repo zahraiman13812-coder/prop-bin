@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { siteOrigin } from "@/lib/site-origin";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FirmLogo from "@/components/FirmLogo";
@@ -11,6 +13,18 @@ import { getPolls } from "@/lib/supabase-polls";
 
 export const dynamic = "force-dynamic";
 type Question = { id: string; display_name: string; question: string; created_at: string };
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const firm = (await getActivePropFirms()).find(item => item.id === id);
+  if (!firm) return { title: "شرکت پیدا نشد", robots: { index: false, follow: false } };
+  const title = `بررسی ${firm.name}`;
+  const description = (firm.description || `بررسی قوانین، پلن‌ها و نظرات کاربران درباره ${firm.name}`).slice(0, 160);
+  const url = `${siteOrigin()}/firms/${encodeURIComponent(id)}`;
+  return { title, description, alternates: { canonical: url },
+    openGraph: { type: "website", title, description, url, locale: "fa_IR" },
+    twitter: { card: "summary", title, description } };
+}
 
 export default async function FirmFullPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

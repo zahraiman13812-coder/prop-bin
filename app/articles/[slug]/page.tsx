@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getContent } from "@/lib/content";
+import { getActiveLotteryRounds } from "@/lib/lottery-rounds";
 
 import {
   getArticleJsonLd,
@@ -34,11 +35,13 @@ export default async function ArticlePage({
   const { slug } = await params;
 
   const [
-  { settings, articleLottery },
-  article
+  { settings },
+  article,
+  lotteryRounds
 ] = await Promise.all([
   getContent(),
   getPublishedArticle(slug),
+  getActiveLotteryRounds(),
 ]);
 
   if (!article) {
@@ -149,13 +152,13 @@ export default async function ArticlePage({
             <ArticleBody body={article.body || ""} />
           </div>
 
-          {articleLottery.enabled && articleLottery.articleSlug === slug && (
-            <section className="mt-8 rounded-2xl border border-primary/40 bg-surface-secondary p-5 text-center sm:p-7">
-              <h2 className="text-xl font-extrabold">🎟️ {articleLottery.title}</h2>
-              <p className="my-4 text-sm leading-8 text-muted">{articleLottery.description}</p>
-              <Link href="/lottery?join=1" className="inline-flex rounded-xl bg-primary px-6 py-3 font-bold text-white">شرکت در قرعه‌کشی ←</Link>
+          {lotteryRounds.filter((round) => round.articleSlug === slug).map((round) => (
+            <section key={round.period} className="mt-8 rounded-2xl border border-primary/40 bg-surface-secondary p-5 text-center sm:p-7">
+              <h2 className="text-xl font-extrabold">🎟️ {round.title}</h2>
+              <p className="my-4 text-sm leading-8 text-muted">{round.description}</p>
+              <Link href={`/lottery?period=${encodeURIComponent(round.period)}`} className="inline-flex rounded-xl bg-primary px-6 py-3 font-bold text-white">شرکت در قرعه‌کشی ←</Link>
             </section>
-          )}
+          ))}
           <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-secondary p-4 text-xs leading-8 text-muted sm:p-5">
             <span>
               این مقاله صرفاً برای اطلاع‌رسانی و

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { getPublishedArticles } from "@/lib/supabase-articles";
+import { getActiveLotteryRounds } from "@/lib/lottery-rounds";
 import { getPublicContent as getContent } from "@/lib/public-content";
 
 import {
@@ -308,11 +309,13 @@ function TradingVisual() {
 
 export default async function HomePage() {
   const [
-    { firms, polls, settings, articleLottery },
+    { firms, polls, settings },
     articles,
+    activeLotteryRounds,
   ] = await Promise.all([
     getContent(),
     getPublishedArticles(),
+    getActiveLotteryRounds(),
   ]);
 
   // تنظیم قدیمی گردونه، حتی اگر در دیتابیس مانده باشد،
@@ -549,33 +552,22 @@ const content: Record<
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {articleLottery.enabled &&
-        articleLottery.articleSlug && (
-          <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6">
+      {activeLotteryRounds.filter((round) => round.articleSlug).map((round) => (
+          <section key={round.period} className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6">
             <div className="flex flex-col items-center justify-between gap-5 rounded-3xl border border-primary/40 bg-surface p-7 text-center shadow-lg sm:flex-row sm:text-right">
               <div>
                 <p className="mb-2 text-3xl">🎟️</p>
-
-                <h2 className="text-2xl font-extrabold">
-                  {articleLottery.title}
-                </h2>
-
-                <p className="mt-3 text-sm leading-7 text-muted">
-                  {articleLottery.description}
-                </p>
+                <h2 className="text-2xl font-extrabold">{round.title}</h2>
+                <p className="mt-3 text-sm leading-7 text-muted">{round.description}</p>
+                <p className="mt-2 text-xs text-muted">دوره: {round.period}</p>
               </div>
-
-              <Link
-                href={`/articles/${encodeURIComponent(
-                  articleLottery.articleSlug
-                )}`}
-                className="shrink-0 rounded-xl bg-primary px-6 py-3 font-bold text-white"
-              >
+              <Link href={`/lottery?period=${encodeURIComponent(round.period)}`}
+                className="shrink-0 rounded-xl bg-primary px-6 py-3 font-bold text-white">
                 مطالعه مقاله و شرکت ←
               </Link>
             </div>
           </section>
-        )}
+      ))}
 
       {visibleSections.filter((id) => id !== "reviews").map((id) => (
         <div key={id}>

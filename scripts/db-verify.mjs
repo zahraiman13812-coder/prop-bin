@@ -6,7 +6,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const requiredTables = [
-  "admin_credentials", "site_settings", "site_users", "site_login_codes",
+  "admin_login_limits", "admin_credentials", "site_settings", "site_users", "site_login_codes",
   "user_auth_attempts", "prop_firms", "firm_details", "firm_discounts",
   "articles", "article_image_references", "site_polls", "firm_questions",
   "firm_compare_rows", "support_threads", "support_messages",
@@ -15,6 +15,7 @@ const requiredTables = [
 ];
 
 const requiredColumns = {
+  admin_login_limits: ["key", "window_start", "attempts"],
   site_users: ["id", "email", "name", "phone", "password_hash", "recovery_hash", "session_version"],
   site_login_codes: ["email", "hash", "mode", "expires_at", "attempts", "window_start", "requests_in_window"],
   prop_firms: ["id", "name", "discount_intro", "purchase_method", "is_active", "sort_order"],
@@ -64,13 +65,18 @@ try {
   ];
   for (const [table, columns] of lotteryUniqueIndexes) {
     const result = await client.query(
-      `SELECT indexdef FROM pg_indexes
-       WHERE schemaname='public' AND tablename=$1 AND indexdef ILIKE '%UNIQUE%'`,
-      [table],
+      `SELECT 1 FROM pg_index i
+       JOIN pg_class t ON t.oid=i.indrelid
+       JOIN pg_namespace n ON n.oid=t.relnamespace
+       WHERE n.nspname='public' AND t.relname=$1
+         AND i.indisunique AND i.indisvalid AND i.indpred IS NULL AND i.indexprs IS NULL
+         AND (SELECT array_agg(a.attname::text ORDER BY k.ord)
+              FROM unnest(i.indkey) WITH ORDINALITY AS k(attnum,ord)
+              JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=k.attnum
+              WHERE k.ord <= i.indnkeyatts) = $2::text[]`,
+      [table, columns],
     );
-    const found = result.rows.some((row) =>
-      columns.every((column) => row.indexdef.includes(column))
-    );
+    const found = result.rowCount > 0;
     if (found) console.log("OK unique index", `${table}(${columns.join(",")})`);
     else { console.error("MISSING unique index", `${table}(${columns.join(",")})`); failed = true; }
   }
@@ -112,7 +118,7 @@ try {
      LEFT JOIN public.article_lottery_entries e
        ON e.user_id = s.user_id AND e.period = s.period
      WHERE s.status = 'issued'
-       AND (e.id IS NULL OR e.code <> s.issued_code)`
+       AND (e.id IS NULL OR e.code IS DISTINCT FROM s.issued_code)`
   );
   if (lotteryConsistency.rows[0].broken === 0) {
     console.log("OK issued article-lottery submissions match participant entries");

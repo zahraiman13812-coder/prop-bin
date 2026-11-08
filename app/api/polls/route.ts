@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/user-auth";
+import { getCurrentUser, isDemoUser } from "@/lib/user-auth";
 import { isAdmin } from "@/lib/auth";
 import { validOrigin } from "@/lib/guard";
 import { getActivePropFirms } from "@/lib/supabase-firms";
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   if (!validOrigin(request)) return error("درخواست نامعتبر است.", 403);
   const user = await getCurrentUser();
   if (!user) return error("برای ثبت نظر ابتدا وارد حساب شوید.", 401);
+  if (isDemoUser(user)) return error("حساب نمایشی فقط برای مشاهده است.", 403);
   const payload = await request.json().catch(() => null);
   if (!payload || typeof payload.firmId !== "string" || !payload.firmId.trim()) return error("شرکت موردنظر مشخص نشده است.");
   for (const key of ["trust", "support", "payout", "rules"] as const) {
@@ -83,6 +84,7 @@ export async function DELETE(request: NextRequest) {
   const user = await getCurrentUser();
   const admin = await isAdmin();
   if (!admin && !user) return error("ابتدا وارد حساب شوید.", 401);
+  if (!admin && isDemoUser(user)) return error("حساب نمایشی فقط برای مشاهده است.", 403);
   const payload = await request.json().catch(() => null);
   if (!payload || typeof payload.id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.id)) return error("شناسه نظر نامعتبر است.");
   try {

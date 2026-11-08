@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isAdmin } from "@/lib/auth";
 import { getContent } from "@/lib/content";
-import { saveArticleLotterySettings } from "@/lib/supabase-lottery";
 import { validOrigin } from "@/lib/guard";
 import { getPublishedArticles } from "@/lib/supabase-articles";
 import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
@@ -124,49 +123,26 @@ async function getSavedEntries(): Promise<LotteryEntry[]> {
   );
 }
 
-function mergeEntries(
-  legacy: LotteryEntry[],
-  saved: LotteryEntry[]
-): LotteryEntry[] {
-  const byCode = new Map<string, LotteryEntry>();
-  const byUserPeriod = new Set<string>();
-
-  // Supabase is the authoritative source for new entries.
-  for (const entry of saved) {
-    byCode.set(entry.code, entry);
-
-    byUserPeriod.add(
-      JSON.stringify([entry.userId, entry.period])
-    );
-  }
-
-  // Keep old entries visible until migration is verified.
-  for (const entry of legacy) {
-    const key = JSON.stringify([
-      entry.userId,
-      entry.period,
-    ]);
-
-    if (
-      byCode.has(entry.code) ||
-      byUserPeriod.has(key)
-    ) {
-      continue;
-    }
-
-    byCode.set(entry.code, { ...entry, selectable: false });
-    byUserPeriod.add(key);
-  }
-
-  return [...byCode.values()].sort((a, b) => {
-  const dateA = new Date(a.createdAt).getTime();
-  const dateB = new Date(b.createdAt).getTime();
-
-  return (
-    (Number.isFinite(dateB) ? dateB : 0) -
-    (Number.isFinite(dateA) ? dateA : 0)
-  );
-});
+// Legacy JSON entries must not recreate deleted periods. Only the database
+// is authoritative; issued submissions missing their entry are shown as
+// non-selectable until explicitly reconciled by the admin.
+async function getUnlinkedIssuedSubmissions(saved: LotteryEntry[]): Promise<LotteryEntry[]> {
+  const known = new Set(saved.map((entry) => JSON.stringify([entry.userId, entry.period])));
+  const rows = await withDatabaseTransaction(async (client) => client.query(
+    `SELECT id, user_id, name, email, period, issued_code, created_at
+     FROM public.article_lottery_submissions
+     WHERE status = 'issued' AND issued_code IS NOT NULL
+     ORDER BY created_at DESC LIMIT 10000`
+  ));
+  return rows.rows.flatMap((row: {
+    id: string; user_id: string; name: string; email: string;
+    period: string; issued_code: string; created_at: string;
+  }) => known.has(JSON.stringify([row.user_id, row.period])) ? [] : [{
+    id: row.id, userId: row.user_id,
+    name: row.name?.trim() || row.email?.split('@')[0] || 'کاربر پراپ‌بین',
+    email: row.email, code: row.issued_code, period: row.period,
+    createdAt: row.created_at, selectable: false,
+  }]);
 }
 
 async function getSavedWinners(
@@ -214,16 +190,8 @@ export async function GET() {
         getSavedEntries(),
       ]);
 
-    const oldEntries = Array.isArray(
-      content.articleLottery.entries
-    )
-      ? content.articleLottery.entries
-      : [];
-
-    const entries = mergeEntries(
-      oldEntries,
-      savedEntries
-    );
+    const unlinked = await getUnlinkedIssuedSubmissions(savedEntries);
+    const entries = [...savedEntries, ...unlinked];
     const winners = await getSavedWinners(entries);
     const roundCounts = await withDatabaseTransaction(async (client) => {
       const [submissionCounts, entryCounts] = await Promise.all([
@@ -237,22 +205,31 @@ export async function GET() {
       return { submissionCounts: submissionCounts.rows, entryCounts: entryCounts.rows };
     });
 
+    const configured = await withDatabaseTransaction(async (client) => {
+      const result = await client.query(
+        `SELECT period, enabled, title, description, article_slug FROM public.article_lottery_rounds ORDER BY created_at DESC, period DESC`
+      );
+      return result.rows as { period: string; enabled: boolean; title: string; description: string; article_slug: string }[];
+    });
     const periods = new Set<string>();
-    entries.forEach((entry) => periods.add(entry.period));
+    configured.forEach((round) => periods.add(round.period));
+    savedEntries.forEach((entry) => periods.add(entry.period));
     winners.forEach((winner) => periods.add(winner.period));
     roundCounts.submissionCounts.forEach((row: { period: string }) => periods.add(row.period));
-    if (content.articleLottery.enabled && content.articleLottery.period?.trim()) {
-      periods.add(content.articleLottery.period);
-    }
+
     const rounds = [...periods].map((period) => ({
       period,
       entries: Number(roundCounts.entryCounts.find((row: { period: string }) => row.period === period)?.total ?? 0),
       submissions: Number(roundCounts.submissionCounts.find((row: { period: string }) => row.period === period)?.total ?? 0),
       winner: winners.find((winner) => winner.period === period)?.name ?? null,
-      active: content.articleLottery.period === period && content.articleLottery.enabled,
+      active: configured.find((round) => round.period === period)?.enabled ?? false,
+      title: configured.find((round) => round.period === period)?.title ?? period,
+      description: configured.find((round) => round.period === period)?.description ?? "",
+      articleSlug: configured.find((round) => round.period === period)?.article_slug ?? "",
     })).sort((a, b) => a.period.localeCompare(b.period, "fa"));
 
     return json({
+      unlinkedIssuedCount: unlinked.length,
       rounds,
       lottery: {
         ...content.articleLottery,
@@ -368,6 +345,7 @@ export async function DELETE(request: NextRequest) {
         | { enabled: boolean; period: string }
         | undefined;
 
+      await client.query("SELECT period FROM public.article_lottery_rounds WHERE period = $1 FOR UPDATE", [period]);
       const winners = await client.query(
         "DELETE FROM public.article_lottery_winners WHERE period = $1",
         [period]
@@ -381,10 +359,11 @@ export async function DELETE(request: NextRequest) {
         [period]
       );
 
+      await client.query("DELETE FROM public.article_lottery_rounds WHERE period = $1", [period]);
       if (settings?.period === period) {
         await client.query(
           `UPDATE public.article_lottery_settings
-           SET enabled = false, period = 'دوره جدید', article_slug = '', updated_at = now()
+           SET enabled = false, period = '', article_slug = '', updated_at = now()
            WHERE id = 1`
         );
       }
@@ -404,7 +383,7 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error("Admin lottery DELETE failed:", error);
-    return json({ error: "حذف دوره کامل نشد. لاگ سرور را بررسی کنید؛ ممکن است بخشی از اطلاعات حذف شده باشد." }, 503);
+    return json({ error: "حذف دوره انجام نشد و تراکنش بازگردانده شد. لاگ سرور را بررسی کنید." }, 503);
   }
 }
 
@@ -524,12 +503,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    await saveArticleLotterySettings({
-      enabled: payload.enabled === true,
-      title,
-      description,
-      articleSlug,
-      period,
+    await withDatabaseTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO public.article_lottery_rounds (period, enabled, title, description, article_slug)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (period) DO UPDATE SET
+           enabled = EXCLUDED.enabled, title = EXCLUDED.title,
+           description = EXCLUDED.description, article_slug = EXCLUDED.article_slug,
+           updated_at = now()`,
+        [period, payload.enabled, title, description, articleSlug]
+      );
+      // Maintain the original settings row for older integrations.
+      await client.query(
+        `UPDATE public.article_lottery_settings SET enabled=$1, title=$2,
+          description=$3, article_slug=$4, period=$5, updated_at=now() WHERE id=1`,
+        [payload.enabled, title, description, articleSlug, period]
+      );
     });
 
     return json({ ok: true });

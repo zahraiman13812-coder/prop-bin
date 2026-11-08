@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/auth";
 import { validOrigin } from "@/lib/guard";
 import { initialContent, type SiteSettings } from "@/lib/content";
-import { getSiteSettings, saveSiteSettings } from "@/lib/supabase-site-settings";
+import { getSiteSettings, patchSiteSettings } from "@/lib/supabase-site-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -177,7 +177,10 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    await saveSiteSettings(next);
+    const patch = Object.fromEntries(EDITABLE_FIELDS
+      .filter(field => field in incoming && next[field] !== current[field])
+      .map(field => [field, next[field]]));
+    await patchSiteSettings(patch);
     revalidatePath("/");
     revalidatePath("/", "layout");
     revalidatePath("/api/theme");

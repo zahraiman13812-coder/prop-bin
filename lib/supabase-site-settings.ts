@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
 
 type SupabaseSettingsError = {
   message?: string;
@@ -103,4 +103,20 @@ export async function saveSiteSettings(settings: SiteSettingsObject): Promise<vo
       `ذخیره تنظیمات سایت در Supabase ناموفق بود (کد ${diagnostic.code}): ${diagnostic.message}`
     );
   }
+}
+
+/** Merge only changed fields; independent admin screens cannot erase each other's updates. */
+export async function patchSiteSettings(patch: Record<string, unknown>): Promise<void> {
+  if (!Object.keys(patch).length) return;
+  await withDatabaseTransaction(async client => {
+    await client.query(`
+      INSERT INTO public.site_settings(id,settings,site_name,site_description,updated_at)
+      VALUES (1,$1::jsonb,COALESCE($1::jsonb->>'name','پراپ‌بین'),COALESCE($1::jsonb->>'tagline',''),now())
+      ON CONFLICT (id) DO UPDATE SET
+        settings = site_settings.settings || EXCLUDED.settings,
+        site_name = COALESCE(EXCLUDED.settings->>'name',site_settings.site_name),
+        site_description = COALESCE(EXCLUDED.settings->>'tagline',site_settings.site_description),
+        updated_at = now()
+    `, [JSON.stringify(patch)]);
+  });
 }

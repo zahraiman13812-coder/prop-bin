@@ -1,30 +1,16 @@
-
-/**
- * Same-origin check for state-changing requests.
- *
- * `request.nextUrl.host` is reconstructed by Next.js and can differ from the
- * host the browser actually used (for example when the site is opened through
- * an IP address), which produced false 403 responses. The Host header is the
- * value the browser signed the Origin against, so compare with that instead.
- */
-export function validOrigin(request: Request) {
+/** Validate a full HTTP(S) origin, including scheme and port; never trust forwarded host. */
+export function validOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return false;
-
-  /*
-   * Do not trust X-Forwarded-Host here: a client can send it too and would
-   * then be able to pair its own Origin with a spoofed forwarded host. Use
-   * the Host header the server actually received.
-   */
-  const host =
-    request.headers.get("host") ||
-    new URL(request.url).host;
-
-  if (!host) return false;
-
   try {
-    return new URL(origin).host === host;
-  } catch {
-    return false;
-  }
+    const source = new URL(origin);
+    if (!["http:", "https:"].includes(source.protocol) || source.username || source.password ||
+        source.pathname !== "/" || source.search || source.hash) return false;
+    const target = new URL(request.url);
+    const host = request.headers.get("host") || target.host;
+    // When TLS terminates at a proxy, the configured public scheme is authoritative.
+    const configured = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : null;
+    const protocol = configured && configured.host === host ? configured.protocol : target.protocol;
+    return source.origin === new URL(`${protocol}//${host}`).origin;
+  } catch { return false; }
 }

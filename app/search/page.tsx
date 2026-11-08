@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "جست‌وجو",
+  robots: { index: false, follow: true },
   description:
     "جست‌وجو در شرکت‌های پراپ، مقالات آموزشی و کدهای تخفیف پراپ‌بین.",
 };

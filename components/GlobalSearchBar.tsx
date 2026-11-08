@@ -51,6 +51,7 @@ export default function GlobalSearchBar() {
   const [query, setQuery] = useState("");
   const [mounted, setMounted] = useState(false);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -135,6 +136,17 @@ export default function GlobalSearchBar() {
       }}
     >
       <div
+        ref={dialogRef}
+        onKeyDown={(event) => {
+          if (event.key !== "Tab") return;
+          const items = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled]), input:not([disabled]), [tabindex="0"]'
+          ) ?? []).filter(item => !item.hidden && item.getClientRects().length > 0);
+          const first = items[0], last = items[items.length - 1];
+          if (!first || !last) return;
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }}
         role="dialog"
         aria-modal="true"
         aria-label="جست‌وجو در پراپ‌بین"

@@ -28,6 +28,7 @@ async function verifyHash(candidate:string,stored:string){
  return timingSafeEqual(derived,Buffer.from(hex,"hex"));
 }
 export async function passwordMatches(candidate:string,row?:CredentialRow){
+ if(typeof candidate!=="string" || !candidate.length || candidate.length>128)return false;
  if(!isConfigured())return false;
  const current=row??await credential();
  return current.password_hash?verifyHash(candidate,current.password_hash):safeEqual(candidate,process.env.ADMIN_PASSWORD!);
@@ -36,7 +37,9 @@ export async function isAdmin(){
  if(!isConfigured())return false;
  const token=(await cookies()).get(COOKIE)?.value;
  if(!token)return false;
- const [stamp,version,mac]=token.split(".");
+ const parts=token.split(".");
+ if(parts.length!==3)return false;
+ const [stamp,version,mac]=parts;
  if(!stamp||!version||!mac||!/^[0-9]+$/.test(stamp)||!/^[0-9]+$/.test(version)||!/^[a-f0-9]{64}$/.test(mac))return false;
  const age=Math.floor(Date.now()/1000)-Number(stamp);
  if(age<0||age>EXPIRES)return false;
@@ -44,6 +47,14 @@ export async function isAdmin(){
  if(!timingSafeEqual(Buffer.from(mac,"hex"),Buffer.from(expected,"hex")))return false;
  const row=await credential();
  return row.session_version===Number(version);
+}
+export async function authenticateAdmin(candidate:string):Promise<string|null>{
+ if(!isConfigured())return null;
+ const row=await credential();
+ if(!(await passwordMatches(candidate,row)))return null;
+ // Bind to the version whose password was checked, even during a password change.
+ const payload=`${Math.floor(Date.now()/1000)}.${row.session_version}`;
+ return `${payload}.${sign(payload)}`;
 }
 export async function newSession(){
  const row=await credential();

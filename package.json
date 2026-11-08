@@ -10,10 +10,11 @@
     "check:types": "tsc --noEmit",
     "db:verify": "node scripts/db-verify.mjs",
     "db:setup": "npm run db:migrate && npm run db:verify",
-    "preflight": "node scripts/preflight-handover.mjs"
+    "preflight": "node scripts/preflight-handover.mjs",
+    "test": "node --test tests/*.cjs",
+    "test:db": "node --test tests/database.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.2",
     "lucide-react": "^0.468.0",
     "next": "^15.2.0",
     "nodemailer": "^10.3.1",
@@ -23,6 +24,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^8.0.2",
@@ -31,5 +33,10 @@
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.32"
+    }
   }
 }

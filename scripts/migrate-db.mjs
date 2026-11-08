@@ -10,6 +10,7 @@ const steps = [
   "database/schema.sql",
   "database/migrations/2026-password-auth.sql",
   "database/migrations/2026-email-otp-auth.sql",
+  "database/migrations/2026-fix-otp-ambiguous-email.sql",
   "database/migrations/2026-firm-review-details.sql",
   "database/migrations/2026-firm-questions-and-comparison.sql",
   "database/migrations/2026-multiple-discounts.sql",
@@ -17,6 +18,8 @@ const steps = [
   "database/migrations/2026-firm-purchase-method.sql",
   "database/migrations/2026-lottery-complete.sql",
   "database/migrations/2026-article-lottery-issued-entry-sync.sql",
+  "database/migrations/2026-security-and-query-indexes.sql",
+  "database/migrations/2026-multiple-article-lottery-rounds.sql",
 ];
 
 if (!process.env.DATABASE_URL) {
@@ -32,6 +35,8 @@ const client = new pg.Client({
 
 try {
   await client.connect();
+  // Serialize concurrent deploys before checking migration history. Released on disconnect.
+  await client.query("SELECT pg_advisory_lock(732846102)");
   await client.query(`CREATE TABLE IF NOT EXISTS public.app_schema_migrations (
     filename text PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
@@ -51,7 +56,7 @@ try {
     // The legacy lottery file has transaction markers and a trailing diagnostic SELECT.
     // Strip only its outer transaction markers; the runner owns the transaction.
     if (filename.endsWith("2026-lottery-complete.sql")) {
-      sql = sql.replace(/^\s*BEGIN\s*;\s*/i, "").replace(/\s*COMMIT\s*;\s*(?=SELECT\s+current_database)/i, "\n");
+      sql = sql.replace(/^[ \t]*BEGIN[ \t]*;[ \t]*$/gmi, "").replace(/^[ \t]*COMMIT[ \t]*;[ \t]*$/gmi, "");
     }
 
     await client.query("BEGIN");

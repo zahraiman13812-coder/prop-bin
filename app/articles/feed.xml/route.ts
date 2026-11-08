@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-origin";
 
 import { getContent } from "@/lib/content";
 import { getPublishedArticles } from "@/lib/supabase-articles";
@@ -27,10 +28,7 @@ export async function GET() {
     getPublishedArticles(),
   ]);
 
-  const origin = (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
+  const origin = siteOrigin();
 
   const sorted = [...articles].sort((a, b) => {
     const aDate = a.publishedAt

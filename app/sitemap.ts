@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-origin";
 import type { MetadataRoute } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -15,15 +16,24 @@ const PUBLIC_ROUTES = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const origin = (
-    process.env.NEXT_PUBLIC_SITE_URL || "https://propbin.com"
-  ).replace(/\/+$/, "");
+  const origin = siteOrigin();
 
   const pages: MetadataRoute.Sitemap = PUBLIC_ROUTES.map((route) => ({
     url: `${origin}${route}`,
     changeFrequency: route === "/" ? "daily" : "weekly",
     priority: route === "/" ? 1 : route === "/articles" || route === "/firms" ? 0.8 : 0.6,
   }));
+
+  // Isolate failures: a broken article query must not hide the firm URLs.
+  try {
+    const { data: firms, error } = await getSupabaseAdmin().from("prop_firms")
+      .select("id,updated_at").eq("is_active", true).order("id").limit(5000);
+    if (error) throw error;
+    for (const firm of firms ?? []) {
+      pages.push({ url: `${origin}/firms/${encodeURIComponent(firm.id)}`,
+        lastModified: firm.updated_at || undefined, changeFrequency: "weekly", priority: 0.7 });
+    }
+  } catch (error) { console.error("Sitemap firm lookup failed:", error); }
 
   try {
     const { data, error } = await getSupabaseAdmin()

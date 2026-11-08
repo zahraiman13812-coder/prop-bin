@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-origin";
 
 import type { Metadata } from "next";
 
@@ -13,13 +14,6 @@ import {
 
 const SITE_NAME = "پراپ‌بین";
 const DEFAULT_AUTHOR = "تیم پراپ‌بین";
-
-function siteOrigin() {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
-}
 
 function absoluteImage(
   image: string | undefined,

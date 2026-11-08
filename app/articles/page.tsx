@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-origin";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -49,10 +50,7 @@ export default async function ArticlesPage() {
   getPublishedArticles(),
 ]);
 
-  const origin = (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000"
-  ).replace(/\/+$/, "");
+  const origin = siteOrigin();
 
   const itemList = {
     "@context": "https://schema.org",

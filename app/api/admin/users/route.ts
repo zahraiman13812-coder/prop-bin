@@ -51,10 +51,10 @@ export async function GET() {
       const db = getSupabaseAdmin();
       const [polls, spins] = await Promise.all([
         db.from("site_polls").select("user_id,created_at"),
-        db.from("wheel_spins").select("user_id,created_at"),
+        db.from("article_lottery_entries").select("user_id,created_at"),
       ]);
       if (polls.error) console.error("Users statistics: site_polls:", polls.error);
-      if (spins.error) console.error("Users statistics: wheel_spins:", spins.error);
+      if (spins.error) console.error("Users statistics: article_lottery_entries:", spins.error);
       for (const poll of (polls.data ?? []) as { user_id: string; created_at: string | null }[]) {
         if (!poll.user_id) continue;
         const stat = ensure(poll.user_id);

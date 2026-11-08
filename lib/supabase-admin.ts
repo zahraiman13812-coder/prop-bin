@@ -5,9 +5,10 @@ import path from 'node:path';
 
 const globalDb = globalThis as typeof globalThis & { __propinPool?: Pool };
 // Reuse one pool per process; hot reload does not exhaust database connections.
-const pool = globalDb.__propinPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 12 });
+const pool = globalDb.__propinPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 12, connectionTimeoutMillis: 10000, statement_timeout: 15000 });
+if (!globalDb.__propinPool) pool.on("error", (error) => console.error("Idle database connection error:", error.message));
 globalDb.__propinPool = pool;
-const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads']);
+const tables = new Set(['article_lottery_submissions','admin_credentials', 'firm_questions','firm_compare_rows','firm_details','article_image_references','article_lottery_entries','article_lottery_settings','article_lottery_rounds','article_lottery_winners','articles','prop_firms','firm_discounts','site_login_codes','site_polls','site_settings','site_users','support_messages','support_threads']);
 const ident = (v: string) => { if (!/^[a-z][a-z0-9_]*$/.test(v)) throw Error('Invalid SQL identifier'); return '"'+v+'"'; };
 const safeTable = (name: string) => { if (!tables.has(name)) throw Error('Unknown table: '+name); return ident(name); };
 const storageRoot = path.join(process.cwd(), '.uploads');
@@ -19,6 +20,7 @@ function safePath(bucket: string, file: string) {
 class Query {
   private action = 'get'; private fields = '*'; private body: any; private filters: string[] = []; private args: any[] = [];
   private sort: string[] = []; private cap?: number; private offset?: number; private one = false; private optional = false;
+  private execution?: Promise<any>;
   private head = false; private count = false; private conflict?: string;
   constructor(private table: string) { safeTable(table); }
   private param(v: any) { this.args.push(v); return '$'+this.args.length; }
@@ -29,15 +31,15 @@ class Query {
   delete() { this.action='delete'; return this; }
   eq(col:string,v:any) { this.filters.push(ident(col)+' = '+this.param(v)); return this; }
   neq(col:string,v:any) { this.filters.push(ident(col)+' <> '+this.param(v)); return this; }
-  is(col:string,v:any) { this.filters.push(ident(col)+(v===null?' IS NULL':' IS NOT NULL')); return this; }
-  not(col:string,op:string,v:any) { if(op!=='is') throw Error('Unsupported filter'); this.filters.push(ident(col)+(v===null?' IS NOT NULL':' IS NULL')); return this; }
+  is(col:string,v:any) { if(v!==null && typeof v!=='boolean')throw Error('Unsupported IS value'); this.filters.push(ident(col)+' IS '+(v===null?'NULL':v?'TRUE':'FALSE')); return this; }
+  not(col:string,op:string,v:any) { if(op!=='is'||(v!==null && typeof v!=='boolean')) throw Error('Unsupported filter'); this.filters.push(ident(col)+' IS NOT '+(v===null?'NULL':v?'TRUE':'FALSE')); return this; }
   in(col:string,values:any[]) { this.filters.push(ident(col)+' = ANY('+this.param(values)+')'); return this; }
   order(col:string,options?:{ascending?:boolean}) {this.sort.push(ident(col)+(options?.ascending===false?' DESC':' ASC'));return this;}
   limit(n:number) { this.cap=n; return this; }
   range(a:number,b:number) {this.offset=a; this.cap=b-a+1;return this;}
   single() {this.one=true;return this;}
   maybeSingle() {this.one=true;this.optional=true;return this;}
-  async then(resolve:(result:any)=>any, reject?:(reason:any)=>any) { try { return resolve(await this.execute()); } catch(e) {if(reject) return reject(e); throw e;} }
+  async then(resolve:(result:any)=>any, reject?:(reason:any)=>any) { try { return resolve(await (this.execution ??= this.execute())); } catch(e) {if(reject) return reject(e); throw e;} }
   private async execute() {
     try {
       const table=safeTable(this.table), filter=this.filters.length?' WHERE '+this.filters.join(' AND '):'';
@@ -68,7 +70,10 @@ class Query {
       if(this.offset!==undefined && this.action==='get') sql+=' OFFSET '+Math.max(0,Math.floor(this.offset));
       const result=await pool.query(sql,this.args);
       let count:number|null=null;
-      if(this.count) {const r=await pool.query('SELECT count(*)::int AS n FROM '+table+filter,this.args);count=r.rows[0].n;}
+      if(this.count) {
+        if(this.action !== 'get') count = result.rowCount ?? result.rows.length;
+        else {const r=await pool.query('SELECT count(*)::int AS n FROM '+table+filter,this.args);count=r.rows[0].n;}
+      }
       if(this.one && result.rows.length>1) return {data:null,error:{message:'Multiple rows',code:'PGRST116'},count};
       if(this.one && !result.rows.length && !this.optional) return {data:null,error:{message:'No rows',code:'PGRST116'},count};
       return {data:this.head?null:(this.one?(result.rows[0]??null):result.rows),error:null,count};

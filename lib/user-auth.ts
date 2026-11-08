@@ -217,7 +217,8 @@ export async function issueLoginCode(email: string, mode: AuthMode = "login", na
   } catch (error) {
     // Invalidate this exact undelivered code; don't remove a newer request's code.
     const { error: deleteError } = await db.from("site_login_codes")
-      .delete().eq("email", normalized).eq("hash", hash);
+      .update({ hash: "undelivered", expires_at: new Date(0).toISOString(), attempts: 5 })
+      .eq("email", normalized).eq("hash", hash);
     if (deleteError) console.error("OTP rollback failed:", deleteError.code);
     throw error;
   }
@@ -294,8 +295,9 @@ export async function getCurrentUser():
 
     if (!token) return null;
 
-    const [payload, mac] =
-      token.split(".");
+    const parts = token.split(".");
+    if (parts.length !== 2 || !/^[a-f0-9]{64}$/.test(parts[1])) return null;
+    const [payload, mac] = parts;
 
     if (!payload || !mac) {
       return null;

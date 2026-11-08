@@ -1,7 +1,7 @@
+import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, isDemoUser } from "@/lib/user-auth";
-import { getContent } from "@/lib/content";
 import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
 import { validOrigin } from "@/lib/guard";
 
@@ -32,19 +32,77 @@ export async function GET() {
 
     if (!user) return json({ error: "ابتدا وارد حساب شوید." }, 401);
 
-    const content = await getContent();
-    const period = content.articleLottery.period;
+    if (isDemoUser(user)) return json({ submissions: [], submission: null, period: "", result: null });
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+    const { data: submissions, error: submissionsError } = await db
       .from("article_lottery_submissions")
-      .select("id,status,issued_code,admin_note,created_at,reviewed_at")
+      .select("id,status,issued_code,admin_note,created_at,reviewed_at,period")
       .eq("user_id", user.id)
-      .eq("period", period)
-      .maybeSingle();
+      .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (submissionsError) throw submissionsError;
 
-    return json({ submission: data, period });
+    const rows = submissions ?? [];
+    if (rows.length === 0) {
+      return json({ submissions: [], submission: null, period: "", result: null });
+    }
+
+    // Fetch all of this user's issued entries and all announced winners in one pass.
+    // Results are computed per period so starting a new round does not hide old results.
+    const eligiblePeriods = [...new Set(
+      rows.filter((row: { status: string }) => row.status === "issued")
+        .map((row: { period: string }) => row.period)
+    )];
+
+    const entryByPeriod = new Map<string, string>();
+    const winnerByPeriod = new Map<string, { entry_id: string; selected_at: string | null }>();
+
+    if (eligiblePeriods.length > 0) {
+      const [{ data: entries, error: entriesError }, { data: winners, error: winnersError }] =
+        await Promise.all([
+          db.from("article_lottery_entries")
+            .select("id,period")
+            .eq("user_id", user.id)
+            .in("period", eligiblePeriods),
+          db.from("article_lottery_winners")
+            .select("period,entry_id,selected_at")
+            .in("period", eligiblePeriods),
+        ]);
+
+      if (entriesError) throw entriesError;
+      if (winnersError) throw winnersError;
+
+      for (const entry of entries ?? []) entryByPeriod.set(entry.period, entry.id);
+      for (const winner of winners ?? []) winnerByPeriod.set(winner.period, winner);
+    }
+
+    const enriched = rows.map((submission: {
+      id: string; status: string; period: string; issued_code: string | null;
+      admin_note: string | null; created_at: string; reviewed_at: string | null;
+    }) => {
+      const entryId = submission.status === "issued"
+        ? entryByPeriod.get(submission.period)
+        : undefined;
+      const winner = winnerByPeriod.get(submission.period);
+      const result = entryId && winner
+        ? {
+            status: winner.entry_id === entryId ? "won" as const : "lost" as const,
+            period: submission.period,
+            announcedAt: winner.selected_at,
+          }
+        : null;
+
+      return { ...submission, result };
+    });
+
+    const latest = enriched[0];
+    return json({
+      submissions: enriched,
+      submission: latest,
+      period: latest?.period ?? "",
+      result: latest?.result ?? null,
+    });
   } catch (error) {
     console.error("Lottery submission GET:", error);
     return json({ error: databaseMessage(error, "دریافت وضعیت درخواست ناموفق بود.") }, 503);
@@ -65,7 +123,10 @@ export async function POST(request: NextRequest) {
       return json({ error: "حساب نمایشی اجازه ارسال درخواست ندارد." }, 403);
     }
 
-    const body = await request.json();
+    const body = await readBoundedJson(request, 7 * 1024 * 1024);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return json({ error: "اطلاعات نامعتبر است." }, 400);
+    }
 
     if (!Array.isArray(body.images) ||
         body.images.length < 1 ||
@@ -84,6 +145,12 @@ export async function POST(request: NextRequest) {
       if (!buffer.length || buffer.length > MAX_IMAGE_SIZE) {
         throw new Error("حجم هر تصویر باید حداکثر ۱ مگابایت باشد.");
       }
+      const validSignature = match[1] === "image/png"
+        ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        : match[1] === "image/jpeg"
+          ? buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+          : buffer.length >= 12 && buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
+      if (!validSignature) throw new Error("محتوای فایل با نوع تصویر مطابقت ندارد.");
       totalSize += buffer.length;
       if (totalSize > MAX_TOTAL_SIZE) {
         throw new Error("حجم مجموع تصاویر بیش از حد مجاز است.");
@@ -92,17 +159,15 @@ export async function POST(request: NextRequest) {
     });
 
     const result = await withDatabaseTransaction(async (client) => {
-      // Lock the settings row so a concurrent period deletion cannot leave orphan submissions.
-      const settingsResult = await client.query(
-        "SELECT enabled, period FROM public.article_lottery_settings WHERE id = 1 FOR UPDATE"
+      // Lock the selected round to serialize submissions with full-period deletion.
+      const requestedPeriod = typeof body.period === "string" ? body.period.trim() : "";
+      if (!requestedPeriod || requestedPeriod.length > 100) return { kind: "disabled" as const };
+      const selected = await client.query(
+        "SELECT enabled, period FROM public.article_lottery_rounds WHERE period = $1 FOR UPDATE",
+        [requestedPeriod]
       );
-      const lottery = settingsResult.rows[0] as
-        | { enabled: boolean; period: string }
-        | undefined;
-
-      if (!lottery?.enabled || !lottery.period?.trim()) {
-        return { kind: "disabled" as const };
-      }
+      const lottery = selected.rows[0] as { enabled: boolean; period: string } | undefined;
+      if (!lottery?.enabled) return { kind: "disabled" as const };
 
       const inserted = await client.query(
         `INSERT INTO public.article_lottery_submissions
@@ -128,6 +193,7 @@ export async function POST(request: NextRequest) {
     return json({ ok: true, submission: result.submission, period: result.period });
 
   } catch (error) {
+    if (error instanceof RequestBodyError) return json({ error: error.message }, error.status);
     console.error("Lottery submission POST:", error);
     if (error && typeof error === "object" && "code" in error && error.code === "23505") {
       return json({ error: "برای این دوره قبلاً درخواست ثبت کرده‌اید." }, 409);

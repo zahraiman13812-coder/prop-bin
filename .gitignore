@@ -22,3 +22,7 @@ data/*.json.*.tmp
 next-env.d.ts
 
 .uploads/
+
+# Database backups contain private user data.
+backups/
+*.dump

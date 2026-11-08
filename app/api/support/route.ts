@@ -13,7 +13,7 @@ import {
   sendAdminReply,
   sendUserMessage,
 } from "@/lib/support";
-import { getCurrentUser } from "@/lib/user-auth";
+import { getCurrentUser, isDemoUser } from "@/lib/user-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +40,11 @@ function unreadForUser(
 }
 
 export async function GET(request: NextRequest) {
+  // Legacy clients mark reads through GET; reject cross-site state changes.
+  if (request.nextUrl.searchParams.get("markRead") === "1" &&
+      request.headers.get("sec-fetch-site") !== "same-origin" && !validOrigin(request)) {
+    return error("درخواست نامعتبر است.", 403);
+  }
   const admin = await isAdmin();
   const all =
     request.nextUrl.searchParams.get("all") === "1";
@@ -156,6 +161,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (isDemoUser(user)) return error("حساب نمایشی فقط برای مشاهده است.", 403);
     const thread = await sendUserMessage(user, message);
 
     return NextResponse.json(

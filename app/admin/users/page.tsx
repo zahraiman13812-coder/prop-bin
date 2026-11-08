@@ -137,7 +137,7 @@ export default function AdminUsersPage() {
         </div>
         <div className="rounded-xl border border-border-theme bg-surface p-4">
           <p className="text-xs text-muted">
-            شرکت‌کنندگان گردونه
+            شرکت‌کنندگان قرعه‌کشی
           </p>
           <p className="mt-2 text-2xl font-extrabold">
             {users
@@ -222,8 +222,9 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="p-3 text-muted">
                       {faDate(
-                        user.lastSpinAt ||
-                          user.lastReviewAt
+                        [user.lastSpinAt, user.lastReviewAt]
+                          .filter((value): value is string => Boolean(value))
+                          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null
                       )}
                     </td>
                   </tr>

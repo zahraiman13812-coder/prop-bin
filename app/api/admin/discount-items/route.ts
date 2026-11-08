@@ -1,7 +1,7 @@
 import { validOrigin } from "@/lib/guard";
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin, withDatabaseTransaction } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,15 +74,20 @@ export async function PATCH(request: Request) {
     }
     const ids = b.orderedIds as string[];
     if (new Set(ids).size !== ids.length) return respond({ error: "شناسه تکراری در ترتیب" }, 400);
-    const db = getSupabaseAdmin();
-    const { data: existing, error } = await db.from("firm_discounts").select("id").eq("firm_id", b.firmId);
-    if (error) throw error;
-    const existingIds = (existing ?? []).map((x: { id: string }) => x.id);
-    if (existingIds.length !== ids.length || ids.some(id => !existingIds.includes(id))) return respond({ error: "فهرست کدها تغییر کرده؛ صفحه را تازه‌سازی کنید" }, 409);
-    for (let i = 0; i < ids.length; i++) {
-      const result = await db.from("firm_discounts").update({ sort_order: (i + 1) * 10 }).eq("firm_id", b.firmId).eq("id", ids[i]).select("id").maybeSingle();
-      if (result.error || !result.data) throw result.error || new Error("Update failed");
-    }
+    const updated = await withDatabaseTransaction(async client => {
+      // Parent lock also serializes FK-checked inserts while this order is committed.
+      const firm = await client.query("SELECT id FROM public.prop_firms WHERE id=$1 FOR UPDATE", [b.firmId]);
+      if (!firm.rowCount) return false;
+      const existing = await client.query("SELECT id FROM public.firm_discounts WHERE firm_id=$1 FOR UPDATE", [b.firmId]);
+      const existingIds = existing.rows.map((row: { id: string }) => row.id);
+      if (existingIds.length !== ids.length || ids.some(id => !existingIds.includes(id))) return false;
+      for (let i = 0; i < ids.length; i++) {
+        const result = await client.query("UPDATE public.firm_discounts SET sort_order=$1 WHERE firm_id=$2 AND id=$3 RETURNING id", [(i+1)*10,b.firmId,ids[i]]);
+        if (!result.rowCount) throw new Error("Discount disappeared");
+      }
+      return true;
+    });
+    if (!updated) return respond({ error: "فهرست کدها تغییر کرده؛ صفحه را تازه‌سازی کنید" }, 409);
     return respond({ success: true });
   } catch (error) {
     console.error("discount sort PATCH", error);

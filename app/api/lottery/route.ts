@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getContent } from "@/lib/content";
 import { getCurrentUser } from "@/lib/user-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -25,25 +24,21 @@ async function findWinner(period: string) {
 
 export async function GET() {
   try {
-    const [content, user] = await Promise.all([getContent(), getCurrentUser()]);
-    const lottery = content.articleLottery;
-    let entry: { code: string; createdAt: string } | null = null;
-    if (user) {
-      const { data, error } = await getSupabaseAdmin().from("article_lottery_entries")
-        .select("code,created_at").eq("user_id", user.id).eq("period", lottery.period).maybeSingle();
-      if (error) throw new Error(error.message);
-      if (data) entry = { code: data.code, createdAt: data.created_at };
-      else {
-        const legacy = Array.isArray(lottery.entries)
-          ? lottery.entries.find(x => x.userId === user.id && x.period === lottery.period)
-          : null;
-        if (legacy) entry = { code: legacy.code, createdAt: legacy.createdAt };
-      }
-    }
-    const winner = await findWinner(lottery.period);
-    return json({ enabled: lottery.enabled, title: lottery.title,
-      description: lottery.description, articleSlug: lottery.articleSlug,
-      period: lottery.period, signedIn: !!user, entry, winner });
+    const user = await getCurrentUser();
+    const { data: rounds, error: roundsError } = await getSupabaseAdmin()
+      .from("article_lottery_rounds")
+      .select("period,enabled,title,description,article_slug")
+      .eq("enabled", true)
+      .order("created_at", { ascending: false });
+    if (roundsError) throw new Error(roundsError.message);
+    const activeRounds = (rounds ?? []).map((round: { period: string; title: string; description: string; article_slug: string }) => ({
+      period: round.period, title: round.title, description: round.description, articleSlug: round.article_slug,
+    }));
+    return json({ enabled: activeRounds.length > 0, rounds: activeRounds, signedIn: !!user,
+      title: activeRounds[0]?.title || "قرعه‌کشی مقاله‌ای",
+      description: activeRounds[0]?.description || "",
+      articleSlug: activeRounds[0]?.articleSlug || "",
+      period: activeRounds[0]?.period || "" });
   } catch (error) {
     console.error("Lottery GET failed:", error);
     return json({ error: "دریافت اطلاعات قرعه‌کشی ناموفق بود." }, 503);

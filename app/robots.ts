@@ -1,11 +1,9 @@
+import { siteOrigin } from "@/lib/site-origin";
 
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const origin = (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://propbin.com"
-  ).replace(/\/+$/, "");
+  const origin = siteOrigin();
 
   return {
     rules: {
@@ -13,16 +11,8 @@ export default function robots(): MetadataRoute.Robots {
 
       allow: "/",
 
-      disallow: [
-        "/admin",
-        "/admin-login",
-        "/account",
-        "/login",
-        "/demo",
-        "/demo-account",
-        "/demo-admin",
-        "/api/",
-      ],
+      // HTML private pages use noindex headers; crawlers must see those headers.
+      disallow: ["/api/"],
     },
 
     sitemap: `${origin}/sitemap.xml`,

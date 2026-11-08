@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { firms, articles } from "./data";
 import { getPolls } from "./supabase-polls";
 import { getArticleLotterySettings } from "./supabase-lottery";
-import { getSiteSettings, saveSiteSettings } from "./supabase-site-settings";
+import { getSiteSettings, patchSiteSettings } from "./supabase-site-settings";
 
 export type Firm = (typeof firms)[number];
 
@@ -294,7 +294,10 @@ export async function updateContent<T>(
       // Settings updates are written to Supabase and are no longer stored
       // in content.json as the runtime source of truth.
       if (settingsChanged) {
-        await saveSiteSettings(content.settings);
+        const previous = JSON.parse(beforeSettings) as Record<string, unknown>;
+        const patch = Object.fromEntries(Object.entries(content.settings)
+          .filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(previous[key])));
+        await patchSiteSettings(patch);
       }
 
       // This helper is still used by a few legacy admin operations for

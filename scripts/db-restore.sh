@@ -6,9 +6,9 @@ if [[ $# -ne 1 || ! -f "$1" ]]; then
   exit 2
 fi
 echo "WARNING: this restore can overwrite objects in the TARGET database."
-echo "Target: ${DATABASE_URL%%\?*}"
+echo "Target: database configured in DATABASE_URL (credentials hidden)"
 read -r -p "Type RESTORE to continue: " CONFIRM
 [[ "$CONFIRM" == "RESTORE" ]] || { echo "Cancelled."; exit 1; }
-pg_restore --clean --if-exists --no-owner --no-privileges --exit-on-error \
+pg_restore --clean --if-exists --no-owner --no-privileges --exit-on-error --single-transaction \
   --dbname="$DATABASE_URL" "$1"
 echo "Restore completed."

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getContent } from "@/lib/content";
+import { initialContent } from "@/lib/content";
+import { getSiteSettings } from "@/lib/supabase-site-settings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export async function GET() {
   let light = LIGHT_DEFAULT;
 
   try {
-    const { settings } = await getContent();
+    const settings = await getSiteSettings(initialContent.settings);
 
     if (validHex(settings.primaryDark)) {
       dark = settings.primaryDark;

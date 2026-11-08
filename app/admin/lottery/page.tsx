@@ -34,13 +34,14 @@ type ArticleOption = {
   title: string;
 };
 
-type LotteryRound = { period: string; entries: number; submissions: number; winner: string | null; active: boolean };
+type LotteryRound = { period: string; title: string; description: string; articleSlug: string; entries: number; submissions: number; winner: string | null; active: boolean };
 
 type ApiData = {
   rounds?: LotteryRound[];
   lottery?: Lottery;
   articles?: ArticleOption[];
   error?: string;
+  unlinkedIssuedCount?: number;
 };
 
 export default function AdminLotteryPage() {
@@ -50,7 +51,10 @@ export default function AdminLotteryPage() {
 
   const [articles, setArticles] = useState<ArticleOption[]>([]);
   const [rounds, setRounds] = useState<LotteryRound[]>([]);
+  const [editingPeriod, setEditingPeriod] = useState<string | null>(null);
   const [deletingPeriod, setDeletingPeriod] = useState<string | null>(null);
+  const [unlinkedIssuedCount, setUnlinkedIssuedCount] = useState(0);
+  const [reconciling, setReconciling] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,7 +62,7 @@ export default function AdminLotteryPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (selectedPeriod?: string) => {
     setLoading(true);
     setError("");
 
@@ -79,8 +83,18 @@ export default function AdminLotteryPage() {
         );
       }
 
-      setLottery(data.lottery);
-      setRounds(Array.isArray(data.rounds) ? data.rounds : []);
+      const availableRounds = Array.isArray(data.rounds) ? data.rounds : [];
+      const chosen = availableRounds.find((round) => round.period === selectedPeriod);
+      setLottery(chosen ? {
+        ...data.lottery,
+        enabled: chosen.active,
+        title: chosen.title,
+        description: chosen.description,
+        articleSlug: chosen.articleSlug,
+        period: chosen.period,
+      } : data.lottery);
+      setRounds(availableRounds);
+      setUnlinkedIssuedCount(data.unlinkedIssuedCount ?? 0);
 
       setArticles(
         Array.isArray(data.articles)
@@ -177,11 +191,9 @@ export default function AdminLotteryPage() {
         );
       }
 
-      setMessage(
-        "تنظیمات قرعه‌کشی با موفقیت ذخیره شد."
-      );
-
-      await load();
+      setEditingPeriod(lottery.period);
+      setMessage("تنظیمات قرعه‌کشی با موفقیت ذخیره شد.");
+      await load(lottery.period);
     } catch (err) {
       setError(
         err instanceof Error
@@ -238,6 +250,23 @@ export default function AdminLotteryPage() {
     }
   }
 
+  async function reconcileIssued() {
+    if (reconciling) return;
+    if (!window.confirm('درخواست‌های دارای کد صادرشده که در فهرست شرکت‌کنندگان نیستند، بدون تغییر کد به فهرست اضافه شوند؟')) return;
+    setReconciling(true); setError(''); setMessage('');
+    try {
+      const response = await fetch('/api/admin/lottery/submissions', {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+      const data = await response.json() as { ok?: boolean; error?: string; message?: string };
+      if (!response.ok || data.ok !== true) throw new Error(data.error || 'همگام‌سازی ناموفق بود.');
+      await load();
+      setMessage(data.message || 'همگام‌سازی انجام شد.');
+    } catch (err) { setError(err instanceof Error ? err.message : 'خطا در همگام‌سازی.'); }
+    finally { setReconciling(false); }
+  }
+
   async function deleteRound(round: LotteryRound) {
     if (deletingPeriod) return;
     const confirmed = window.confirm(
@@ -258,6 +287,15 @@ export default function AdminLotteryPage() {
       });
       const data = await response.json() as { ok?: boolean; error?: string; message?: string };
       if (!response.ok || data.ok !== true) throw new Error(data.error || "حذف دوره ناموفق بود.");
+      // Immediately remove a successfully deleted round from the visible list.
+      setRounds((current) => current.filter((item) => item.period !== round.period));
+      setLottery((current) => current ? {
+        ...current,
+        entries: current.entries.filter((item) => item.period !== round.period),
+        winners: current.winners.filter((item) => item.period !== round.period),
+        ...(current.period === round.period ? { enabled: false, period: 'دوره جدید', articleSlug: '' } : {}),
+      } : current);
+      if (editingPeriod === round.period) setEditingPeriod(null);
       setMessage(data.message || `دوره «${round.period}» حذف شد.`);
       await load();
     } catch (err) {
@@ -265,6 +303,23 @@ export default function AdminLotteryPage() {
     } finally {
       setDeletingPeriod(null);
     }
+  }
+
+  function addNewRound() {
+    if (!lottery) return;
+    setEditingPeriod("__new__");
+    setLottery({ ...lottery, enabled: false, title: "", description: "", articleSlug: "", period: "" });
+    setError(""); setMessage("");
+    document.getElementById("lottery-round-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function editRound(round: LotteryRound) {
+    if (!lottery) return;
+    setEditingPeriod(round.period);
+    setLottery({ ...lottery, enabled: round.active, title: round.title,
+      description: round.description, articleSlug: round.articleSlug, period: round.period });
+    setError(""); setMessage("");
+    document.getElementById("lottery-round-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const inputClass =
@@ -300,8 +355,13 @@ export default function AdminLotteryPage() {
             <h2 className="text-lg font-extrabold">مدیریت دوره‌های قرعه‌کشی</h2>
             <p className="mt-1 text-sm leading-6 text-muted">هر دوره به‌صورت مستقل نمایش داده می‌شود. با حذف دوره، شرکت‌کنندگان، درخواست‌های عکس و نتیجه برنده همان دوره نیز حذف خواهند شد.</p>
           </div>
-          <span className="rounded-full bg-background px-3 py-1 text-xs font-bold text-muted">{rounds.length.toLocaleString("fa-IR")} دوره</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-background px-3 py-1 text-xs font-bold text-muted">{rounds.length.toLocaleString("fa-IR")} دوره</span>
+            <button type="button" onClick={addNewRound} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">+ افزودن قرعه‌کشی جدید</button>
+          </div>
         </div>
+        {error && <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
+        {message && <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">{message}</p>}
         {rounds.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border-theme p-5 text-center text-sm text-muted">هنوز دوره‌ای ثبت نشده است.</p>
         ) : (
@@ -309,7 +369,7 @@ export default function AdminLotteryPage() {
             {rounds.map((round) => (
               <article key={round.period} className="min-w-0 space-y-3 rounded-xl border border-border-theme bg-background p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="break-words font-extrabold">{round.period}</h3>
+                  <div><h3 className="break-words font-extrabold">{round.period}</h3><p className="mt-1 text-xs text-muted">{round.title}</p><p className="mt-1 text-xs text-muted">مقاله: {articles.find((item) => item.slug === round.articleSlug)?.title || round.articleSlug || "انتخاب نشده"}</p></div>
                   {round.active ? <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600">دوره فعال</span> : <span className="rounded-full bg-surface px-2.5 py-1 text-xs text-muted">غیرفعال</span>}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -317,6 +377,7 @@ export default function AdminLotteryPage() {
                   <div className="rounded-lg bg-surface p-3"><p className="text-xs text-muted">درخواست عکس</p><p className="mt-1 font-extrabold">{round.submissions.toLocaleString("fa-IR")}</p></div>
                 </div>
                 {round.winner && <p className="text-sm text-emerald-600">برنده: {round.winner}</p>}
+                <button type="button" onClick={() => editRound(round)} className="w-full rounded-lg border border-primary/40 px-3 py-2.5 text-sm font-bold text-primary hover:bg-primary/10">ویرایش این دوره</button>
                 <button type="button" onClick={() => void deleteRound(round)} disabled={deletingPeriod !== null} className="w-full rounded-lg border border-red-500/40 px-3 py-2.5 text-sm font-bold text-red-500 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50">
                   {deletingPeriod === round.period ? "در حال حذف..." : "حذف کامل این دوره"}
                 </button>
@@ -350,10 +411,10 @@ export default function AdminLotteryPage() {
         </p>
       ) : lottery ? (
         <>
-          <section className="space-y-5 rounded-2xl border border-border-theme bg-surface p-4 sm:p-6">
+          <section id="lottery-round-editor" className="space-y-5 rounded-2xl border border-border-theme bg-surface p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-extrabold">
-                تنظیمات قرعه‌کشی
+                {editingPeriod === "__new__" ? "افزودن قرعه‌کشی جدید" : editingPeriod ? `ویرایش دوره: ${editingPeriod}` : "تنظیمات قرعه‌کشی"}
               </h2>
 
               <span className="text-xs text-muted">
@@ -411,6 +472,7 @@ export default function AdminLotteryPage() {
                   type="text"
                   maxLength={100}
                   value={lottery.period}
+                  readOnly={editingPeriod !== null && editingPeriod !== "__new__"}
                   onChange={(event) =>
                     update(
                       "period",
@@ -421,9 +483,7 @@ export default function AdminLotteryPage() {
                 />
 
                 <span className="block text-xs leading-6 text-muted">
-                  برای شروع دوره جدید، نام تازه‌ای
-                  انتخاب کن. کدهای دوره‌های قبلی
-                  حفظ می‌شوند.
+                  برای ساخت دوره دیگر از دکمه «افزودن قرعه‌کشی جدید» استفاده کنید. هر دوره مقاله و شرکت‌کنندگان مستقل دارد.
                 </span>
               </label>
 
@@ -538,6 +598,12 @@ export default function AdminLotteryPage() {
               شرکت‌کنندگان
             </h2>
 
+            {unlinkedIssuedCount > 0 && <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+              <span>{unlinkedIssuedCount.toLocaleString('fa-IR')} درخواست دارای کد صادرشده هنوز در فهرست اصلی ثبت نشده‌اند.</span>
+              <button type="button" disabled={reconciling} onClick={() => void reconcileIssued()} className="rounded-lg bg-primary px-4 py-2 font-bold text-primary-foreground disabled:opacity-50">
+                {reconciling ? 'در حال همگام‌سازی...' : 'همگام‌سازی شرکت‌کنندگان'}
+              </button>
+            </div>}
             <p className="mb-5 text-sm text-muted">
               {lottery.entries.length.toLocaleString(
                 "fa-IR"
@@ -631,7 +697,7 @@ export default function AdminLotteryPage() {
                             </button>
                           )
                         ) : (
-                          <span className="text-xs text-muted">کد قدیمی؛ نیازمند انتقال است</span>
+                          <span className="text-xs text-muted">کد صادرشده؛ نیازمند همگام‌سازی</span>
                         )}
                       </td>
                     </tr>

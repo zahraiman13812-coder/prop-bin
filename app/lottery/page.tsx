@@ -6,9 +6,10 @@ import Link from "next/link";
 type LotteryInfo = {
   enabled: boolean; title: string; description: string; period: string;
   articleSlug: string; signedIn: boolean;
+  rounds: Array<{ title: string; description: string; articleSlug: string; period: string }>;
 };
 type Submission = {
-  id: string; status: "pending" | "approved" | "rejected" | "issued";
+  id: string; period: string; status: "pending" | "approved" | "rejected" | "issued";
   issued_code: string | null; admin_note: string | null; created_at: string;
 };
 const statusLabels: Record<Submission["status"], string> = {
@@ -42,7 +43,10 @@ async function shrinkImage(file: File): Promise<string> {
 }
 export default function LotteryPage() {
   const [info, setInfo] = useState<LotteryInfo | null>(null);
-  const [submission, setSubmission] = useState<Submission | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState("");
+  const selectedRound = info?.rounds?.find((round) => round.period === selectedPeriod) ?? info?.rounds?.[0];
+  const submission = submissions.find((item) => item.period === selectedRound?.period) ?? null;
   const [images, setImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -57,11 +61,13 @@ export default function LotteryPage() {
         const data = (await readJson(response)) as LotteryInfo;
         if (!active) return;
         setInfo(data);
+        const requested = new URLSearchParams(window.location.search).get("period");
+        setSelectedPeriod(data.rounds?.find((round) => round.period === requested)?.period || data.rounds?.[0]?.period || "");
         if (data.signedIn) {
           const subResponse = await fetch("/api/lottery/submission", { cache: "no-store" });
           const subData = await readJson(subResponse);
           if (!subResponse.ok) throw new Error(subData.error || "دریافت درخواست ناموفق بود.");
-          if (active) setSubmission(subData.submission || null);
+          if (active) setSubmissions(Array.isArray(subData.submissions) ? subData.submissions : []);
         }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "خطا در بارگذاری");
@@ -91,24 +97,32 @@ export default function LotteryPage() {
     try {
       const response = await fetch("/api/lottery/submission", {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images }),
+        body: JSON.stringify({ images, period: selectedRound?.period }),
       });
       const data = await readJson(response);
       if (!response.ok) throw new Error(data.error || "ارسال تصاویر ناموفق بود.");
-      setSubmission(data.submission); setImages([]);
+      setSubmissions((previous) => [ { ...data.submission, period: data.period }, ...previous ]); setImages([]);
     } catch (err) { setError(err instanceof Error ? err.message : "ارسال ناموفق بود."); }
     finally { setBusy(false); }
   }
 
   return <main dir="rtl" className="mx-auto max-w-3xl px-4 py-12 sm:py-20">
     <section className="space-y-5 rounded-3xl border border-border-theme bg-surface p-5 shadow-xl sm:p-10">
-      <h1 className="text-center text-2xl font-extrabold">{info?.title || "قرعه‌کشی مقاله‌ای"}</h1>
+      <h1 className="text-center text-2xl font-extrabold">{"قرعه‌کشی مقاله‌ای"}</h1>
       {loading && <p className="text-center text-muted">در حال بارگذاری...</p>}
       {info && !info.enabled && <p className="text-center text-muted">این قرعه‌کشی فعلاً فعال نیست.</p>}
       {info?.enabled && <>
-        <p className="text-sm leading-8 text-muted">{info.description}</p>
-        <p className="text-sm text-muted">دوره: {info.period}</p>
-        {info.articleSlug && <Link href={`/articles/${encodeURIComponent(info.articleSlug)}`} className="inline-block text-primary underline">مطالعه مقاله قرعه‌کشی</Link>}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {info.rounds.map((round) => <button key={round.period} type="button"
+            onClick={() => { setSelectedPeriod(round.period); setImages([]); setError(""); }}
+            className={`rounded-xl border p-4 text-right ${selectedRound?.period === round.period ? "border-primary bg-primary/10" : "border-border-theme"}`}>
+            <span className="block font-bold">{round.title}</span>
+            <span className="mt-1 block text-xs text-muted">{round.period}</span>
+          </button>)}
+        </div>
+        <p className="text-sm leading-8 text-muted">{selectedRound?.description}</p>
+        <p className="text-sm text-muted">دوره: {selectedRound?.period}</p>
+        {selectedRound?.articleSlug && <Link href={`/articles/${encodeURIComponent(selectedRound.articleSlug)}`} className="inline-block text-primary underline">مطالعه مقاله قرعه‌کشی</Link>}
         {!info.signedIn ? <div className="rounded-xl border border-border-theme p-5 text-center">
           <p className="mb-4">برای ارسال عکس‌ها ابتدا وارد حساب خود شوید.</p>
           <Link className="inline-block rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground" href="/login?next=%2Flottery">ورود / ثبت‌نام</Link>

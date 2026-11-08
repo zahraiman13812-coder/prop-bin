@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site-origin";
 
 import type { Metadata } from "next";
 
@@ -10,9 +11,7 @@ import { initialContent } from "@/lib/content";
 import { getSiteSettings } from "@/lib/supabase-site-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
+  const siteUrl = siteOrigin();
 
   let settings = initialContent.settings;
   try {

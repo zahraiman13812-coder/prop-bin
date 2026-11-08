@@ -52,13 +52,54 @@ export async function GET() {
   }
 }
 
+
+// Explicit, idempotent repair for older issued requests whose participant row
+// was never created. Do not modify pre-existing entries or generate new codes.
+export async function POST(request: NextRequest) {
+  if (!validOrigin(request) || !(await isAdmin())) {
+    return json({ error: "دسترسی غیرمجاز است." }, 403);
+  }
+  try {
+    const result = await withDatabaseTransaction(async (client) => {
+      const issued = await client.query(`
+        SELECT s.id, s.user_id, s.name, s.email, s.period, s.issued_code
+        FROM public.article_lottery_submissions s
+        LEFT JOIN public.article_lottery_entries e
+          ON e.user_id = s.user_id AND e.period = s.period
+        WHERE s.status = 'issued' AND s.issued_code IS NOT NULL AND e.id IS NULL
+        ORDER BY s.created_at FOR UPDATE OF s
+      `);
+      let inserted = 0;
+      for (const row of issued.rows) {
+        const found = await client.query(
+          `INSERT INTO public.article_lottery_entries
+            (user_id, name, email, code, period, created_at)
+           VALUES ($1, $2, $3, $4, $5, now())
+           ON CONFLICT (user_id, period) DO NOTHING RETURNING id`,
+          [row.user_id, row.name || row.email?.split('@')[0] || 'کاربر پراپ‌بین',
+           row.email, row.issued_code, row.period]
+        );
+        inserted += found.rowCount ?? 0;
+      }
+      return { missing: issued.rowCount ?? 0, inserted };
+    });
+    return json({ ok: true, ...result, message: `${result.inserted} شرکت‌کننده به فهرست اصلی برگردانده شد.` });
+  } catch (error) {
+    console.error('Lottery participant reconciliation failed:', error);
+    return json({ error: 'همگام‌سازی انجام نشد؛ ممکن است کد تکراری باشد. هیچ تغییر ناقصی ذخیره نشد.' }, 503);
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   if (!validOrigin(request) || !(await isAdmin())) {
     return json({ error: "دسترسی غیرمجاز است." }, 403);
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return json({ error: "اطلاعات نامعتبر است." }, 400);
+    }
 
     const id = typeof body.id === "string" ? body.id : "";
     const action = body.action;
@@ -66,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       ? body.note.trim().slice(0, 500)
       : "";
 
-    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
       return json({ error: "شناسه درخواست معتبر نیست." }, 400);
     }
 
@@ -81,42 +122,24 @@ export async function PATCH(request: NextRequest) {
     if (lookupError) throw lookupError;
     if (!submission) return json({ error: "درخواست پیدا نشد." }, 404);
 
-    if (action === "approve") {
-      if (submission.status === "issued") {
-        return json({ error: "کد قبلاً صادر شده است." }, 409);
-      }
-
-      const { error } = await db
+    if (action === "approve" || action === "reject") {
+      // Check the current status in the UPDATE, not only in the earlier lookup.
+      const { data: changed, error } = await db
         .from("article_lottery_submissions")
         .update({
-          status: "approved",
-          admin_note: note || null,
+          status: action === "approve" ? "approved" : "rejected",
+          admin_note: note || (action === "reject" ? "درخواست توسط مدیر رد شد." : null),
           reviewed_at: new Date().toISOString(),
         })
-        .eq("id", id);
-
+        .eq("id", id)
+        .neq("status", "issued")
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
-
-      return json({ ok: true, message: "درخواست تأیید شد." });
-    }
-
-    if (action === "reject") {
-      if (submission.status === "issued") {
-        return json({ error: "درخواست دارای کد صادرشده است." }, 409);
+      if (!changed) {
+        return json({ error: "درخواست حذف شده یا کد آن قبلاً صادر شده است. صفحه را تازه کنید." }, 409);
       }
-
-      const { error } = await db
-        .from("article_lottery_submissions")
-        .update({
-          status: "rejected",
-          admin_note: note || "درخواست توسط مدیر رد شد.",
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      return json({ ok: true, message: "درخواست رد شد." });
+      return json({ ok: true, message: action === "approve" ? "درخواست تأیید شد." : "درخواست رد شد." });
     }
 
     if (action === "issue") {
